@@ -1,10 +1,12 @@
 <script setup>
-import { ref, onMounted } from 'vue'
+import { ref, onMounted, computed } from 'vue'
 import axios from 'axios'
 import { useRouter, useRoute } from 'vue-router'
+import useItemStore from '@/stores/item.js'
 
 const router = useRouter()
 const route = useRoute()
+const itemStore = useItemStore()
 
 // Check if we're editing (has ID in route)
 const isEditing = ref(false)
@@ -21,70 +23,35 @@ const formData = ref({
   latest_price: ''
 })
 
-// Options for dropdowns
-const units = ref([])
-const suppliers = ref([])
-const brands = ref([])
-const groups = ref([])
-
 // Form validation and state
 const errors = ref({})
 const isLoading = ref(false)
 const isSubmitting = ref(false)
 
-onMounted(async () => {
-  // Load dropdown options
-  await Promise.all([
-    loadUnits(),
-    loadSuppliers(),
-    loadBrands(),
-    loadGroups()
-  ])
+// Computed properties from store
+const units = computed(() => itemStore.units)
+const suppliers = computed(() => itemStore.suppliers)
+const brands = computed(() => itemStore.brands)
+const groups = computed(() => itemStore.groups)
 
-  // Check if we have an ID in the route (editing mode)
-  if (route.params.id) {
-    isEditing.value = true
-    itemId.value = route.params.id
-    await loadItem()
+// Loading states from store
+const isLoadingReferenceData = computed(() => itemStore.isLoadingAny)
+
+onMounted(async () => {
+  try {
+    // Load all reference data from store
+    await itemStore.fetchAllReferenceData()
+
+    // Check if we have an ID in the route (editing mode)
+    if (route.params.id) {
+      isEditing.value = true
+      itemId.value = route.params.id
+      await loadItem()
+    }
+  } catch (error) {
+    console.error('Error loading initial data:', error)
   }
 })
-
-// Load dropdown options
-const loadUnits = async () => {
-  try {
-    const response = await axios.get('/api/units')
-    units.value = response.data.units.data || response.data.units || []
-  } catch (error) {
-    console.error('Error loading units:', error)
-  }
-}
-
-const loadSuppliers = async () => {
-  try {
-    const response = await axios.get('/api/suppliers')
-    suppliers.value = response.data.suppliers.data || response.data.suppliers || []
-  } catch (error) {
-    console.error('Error loading suppliers:', error)
-  }
-}
-
-const loadBrands = async () => {
-  try {
-    const response = await axios.get('/api/brands')
-    brands.value = response.data.brands || []
-  } catch (error) {
-    console.error('Error loading brands:', error)
-  }
-}
-
-const loadGroups = async () => {
-  try {
-    const response = await axios.get('/api/groups')
-    groups.value = response.data.groups.data || response.data.groups || []
-  } catch (error) {
-    console.error('Error loading groups:', error)
-  }
-}
 
 // Load item data for editing
 const loadItem = async () => {
@@ -135,6 +102,9 @@ const submitForm = async () => {
       // Show success message (you might want to use a toast notification here)
       console.log(`Item ${isEditing.value ? 'updated' : 'created'} successfully:`, response.data.item)
 
+      // Clear store errors on success
+      itemStore.clearErrors()
+
       // Redirect to items list with a success message
       router.push({
         path: '/items',
@@ -151,6 +121,7 @@ const submitForm = async () => {
     } else {
       console.error(`Error ${isEditing.value ? 'updating' : 'creating'} item:`, error)
       // Handle other errors (show general error message)
+      errors.value = { general: ['An unexpected error occurred. Please try again.'] }
     }
   } finally {
     isSubmitting.value = false
@@ -169,6 +140,7 @@ const resetForm = () => {
     latest_price: ''
   }
   errors.value = {}
+  itemStore.clearErrors()
 }
 
 // Helper function to check if field has error
@@ -199,8 +171,10 @@ const getError = (field) => {
         </div>
       </header>
       <div class="card-content">
-        <div v-if="isLoading" class="text-center">
-          <div class="button is-loading is-static">Loading item data...</div>
+        <div v-if="isLoading || isLoadingReferenceData" class="text-center">
+          <div class="button is-loading is-static">
+            {{ isLoading ? 'Loading item data...' : 'Loading reference data...' }}
+          </div>
         </div>
         <form v-else @submit.prevent="submitForm" class="space-y-6">
           <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
