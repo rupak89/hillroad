@@ -33,11 +33,11 @@ class ItemController extends Controller
      */
     public function store(ItemRequest $request)
     {
-        $unit = $this->itemService->createItem($request->validated());
+        $item = $this->itemService->createItem($request->validated());
 
         return response()->json([
             'message' => 'Item created successfully',
-            'unit' => $unit,
+            'item' => $item,
         ]);
     }
 
@@ -47,11 +47,11 @@ class ItemController extends Controller
      */
     public function update(ItemRequest $request, string $id)
     {
-        $unit = $this->itemService->updateItem($id, $request->validated());
+        $item = $this->itemService->updateItem($id, $request->validated());
 
         return response()->json([
             'message' => 'Item updated successfully',
-            'unit' => $unit,
+            'item' => $item,
         ]);
     }
 

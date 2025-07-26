@@ -21,8 +21,10 @@ class ItemRequest extends FormRequest
      */
     public function rules(): array
     {
+        $itemId = $this->route('item'); // Get the item ID from route parameter
+
         return [
-            'item_name' => 'required|string|max:255|unique:items',
+            'item_name' => 'required|string|max:255|unique:items,item_name,' . $itemId,
             'ordering_unit_id' => 'required|numeric|exists:units,id',
             'counting_unit_id' => 'required|numeric|exists:units,id',
             'default_supplier_id' => 'nullable|exists:suppliers,id',
