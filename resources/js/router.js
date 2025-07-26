@@ -25,6 +25,7 @@ const routes = [
             { path: '/recipes/add', component: Addrecipe },
             { path: '/items', component: Items },
             { path: '/items/add', component: AddItem , name: 'additem'},
+            { path: '/items/edit/:id', component: AddItem },
             { path: '/suppliers', component: Supplier },
             { path: '/suppliers/add', component: AddSupplier },
             { path: '/suppliers/edit/:id', component: AddSupplier },

@@ -8,13 +8,16 @@ use App\Http\Resources\ItemResource;
 class ItemService
 {
     /**
-     * Get the list of items.
+     * Get the list of items with pagination.
      *
-     * @return \Illuminate\Database\Eloquent\Collection
+     * @param int $perPage
+     * @return \Illuminate\Contracts\Pagination\LengthAwarePaginator
      */
-    public function getItems()
+    public function getItems($perPage = 10)
     {
-        return ItemResource::collection(Item::all());
+        return Item::with(['supplier', 'defaultBrand', 'group'])
+            ->orderBy('item_name')
+            ->paginate($perPage);
     }
 
     /**
@@ -54,5 +57,16 @@ class ItemService
             return $item->delete();
         }
         return null;
+    }
+
+    /**
+     * Get a single item by ID.
+     *
+     * @param int $id
+     * @return Item|null
+     */
+    public function getItem(int $id): ?Item
+    {
+        return Item::with(['supplier', 'defaultBrand', 'group'])->find($id);
     }
 }

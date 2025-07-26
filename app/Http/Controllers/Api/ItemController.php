@@ -19,9 +19,12 @@ class ItemController extends Controller
      */
     public function index()
     {
+        $perPage = request('per_page', 10);
+        $items = $this->itemService->getItems($perPage);
+
         return response()->json([
             'message' => 'List of items',
-            'items' => $this->itemService->getItems(),
+            'items' => $items,
         ]);
     }
 
@@ -68,5 +71,24 @@ class ItemController extends Controller
         return response()->json([
             'message' => 'Item not found or could not be deleted',
         ], 404);
+    }
+
+    /**
+     * Display the specified resource.
+     */
+    public function show(string $id)
+    {
+        $item = $this->itemService->getItem($id);
+
+        if (!$item) {
+            return response()->json([
+                'message' => 'Item not found',
+            ], 404);
+        }
+
+        return response()->json([
+            'message' => 'Item details',
+            'item' => $item,
+        ]);
     }
 }
