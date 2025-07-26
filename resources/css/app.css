@@ -1,0 +1,62 @@
+@import 'tailwindcss';
+
+@source "./resources/**/*.blade.php";
+@source "./resources/**/*.js";
+@source "./resources/**/*.vue";
+
+@theme {
+  --font-sans: 'Instrument Sans', ui-sans-serif, system-ui, sans-serif, 'Apple Color Emoji', 'Segoe UI Emoji', 'Segoe UI Symbol', 'Noto Color Emoji';
+}
+
+@import './parts/_icon.css';
+
+/* Ensure responsive table display works */
+@media (min-width: 1024px) {
+  .lg\:block {
+    display: table !important;
+  }
+  .lg\:hidden {
+    display: none !important;
+  }
+}
+
+/* Mobile navbar menu */
+.navbar-menu {
+  display: none;
+}
+
+.navbar-menu.active {
+  display: block !important;
+}
+
+/* Navbar dropdown functionality */
+.navbar-item.dropdown .navbar-dropdown {
+  display: none;
+}
+
+.navbar-item.dropdown.active .navbar-dropdown {
+  display: block !important;
+}
+
+/* Desktop hover for navbar dropdowns */
+@media (min-width: 1024px) {
+  .navbar-item.dropdown:hover .navbar-dropdown {
+    display: block !important;
+  }
+}
+
+/* Aside menu dropdown functionality */
+.menu-list li ul {
+  display: none;
+}
+
+.menu-list li.active ul {
+  display: block !important;
+}
+
+/* Mobile aside menu */
+.aside-mobile-expanded .aside {
+  left: 0 !important;
+}
+
+
