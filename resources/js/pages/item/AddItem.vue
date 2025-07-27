@@ -129,19 +129,19 @@ const submitForm = async () => {
 }
 
 // Reset form
-const resetForm = () => {
-  formData.value = {
-    item_name: '',
-    ordering_unit_id: '',
-    counting_unit_id: '',
-    default_supplier_id: '',
-    default_brand_id: '',
-    group_id: '',
-    latest_price: ''
-  }
-  errors.value = {}
-  itemStore.clearErrors()
-}
+// const resetForm = () => {
+//   formData.value = {
+//     item_name: '',
+//     ordering_unit_id: '',
+//     counting_unit_id: '',
+//     default_supplier_id: '',
+//     default_brand_id: '',
+//     group_id: '',
+//     latest_price: ''
+//   }
+//   errors.value = {}
+//   itemStore.clearErrors()
+// }
 
 // Helper function to check if field has error
 const hasError = (field) => {
@@ -311,13 +311,13 @@ const getError = (field) => {
                 <span v-else>{{ isEditing ? 'Updating...' : 'Adding...' }}</span>
               </button>
 
-              <button
+              <!-- <button
                 type="button"
                 class="button light flex-1 sm:flex-initial"
                 @click="resetForm"
                 :disabled="isSubmitting">
                 Reset
-              </button>
+              </button> -->
 
               <router-link
                 to="/items"
