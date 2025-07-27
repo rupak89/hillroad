@@ -3,10 +3,12 @@ import { ref, onMounted, computed } from 'vue'
 import axios from 'axios'
 import { useRouter, useRoute } from 'vue-router'
 import useItemStore from '@/stores/item.js'
+import { useFlashMessage } from '@/composables/useFlashMessage.js'
 
 const router = useRouter()
 const route = useRoute()
 const itemStore = useItemStore()
+const { success, error } = useFlashMessage()
 
 // Check if we're editing (has ID in route)
 const isEditing = ref(false)
@@ -99,29 +101,31 @@ const submitForm = async () => {
     }
 
     if (response.data) {
-      // Show success message (you might want to use a toast notification here)
-      console.log(`Item ${isEditing.value ? 'updated' : 'created'} successfully:`, response.data.item)
-
       // Clear store errors on success
       itemStore.clearErrors()
 
-      // Redirect to items list with a success message
-      router.push({
-        path: '/items',
-        query: {
-          success: isEditing.value ? 'updated' : 'created',
-          item: response.data.item.item_name
-        }
-      })
+      // Show success flash message
+      success(
+        `Item ${isEditing.value ? 'Updated' : 'Created'}`,
+        `"${response.data.item.item_name}" has been ${isEditing.value ? 'updated' : 'created'} successfully.`
+      )
+
+      // Redirect to items list
+      router.push('/items')
     }
   } catch (error) {
     if (error.response && error.response.status === 422) {
       // Validation errors
       errors.value = error.response.data.errors || {}
+      error('Validation Error', 'Please check the form for errors.')
     } else {
       console.error(`Error ${isEditing.value ? 'updating' : 'creating'} item:`, error)
       // Handle other errors (show general error message)
       errors.value = { general: ['An unexpected error occurred. Please try again.'] }
+      error(
+        `Error ${isEditing.value ? 'Updating' : 'Creating'} Item`,
+        'An unexpected error occurred. Please try again.'
+      )
     }
   } finally {
     isSubmitting.value = false
@@ -129,19 +133,19 @@ const submitForm = async () => {
 }
 
 // Reset form
-// const resetForm = () => {
-//   formData.value = {
-//     item_name: '',
-//     ordering_unit_id: '',
-//     counting_unit_id: '',
-//     default_supplier_id: '',
-//     default_brand_id: '',
-//     group_id: '',
-//     latest_price: ''
-//   }
-//   errors.value = {}
-//   itemStore.clearErrors()
-// }
+const resetForm = () => {
+  formData.value = {
+    item_name: '',
+    ordering_unit_id: '',
+    counting_unit_id: '',
+    default_supplier_id: '',
+    default_brand_id: '',
+    group_id: '',
+    latest_price: ''
+  }
+  errors.value = {}
+  itemStore.clearErrors()
+}
 
 // Helper function to check if field has error
 const hasError = (field) => {
@@ -311,13 +315,13 @@ const getError = (field) => {
                 <span v-else>{{ isEditing ? 'Updating...' : 'Adding...' }}</span>
               </button>
 
-              <!-- <button
+              <button
                 type="button"
                 class="button light flex-1 sm:flex-initial"
                 @click="resetForm"
                 :disabled="isSubmitting">
                 Reset
-              </button> -->
+              </button>
 
               <router-link
                 to="/items"

@@ -3,11 +3,14 @@ import axios from 'axios';
 import { onMounted, ref, watch } from 'vue';
 import { useRoute, useRouter } from 'vue-router';
 import Pagination from '../../components/Pagination.vue';
+import { useFlashMessage } from '@/composables/useFlashMessage.js';
 
 const route = useRoute();
 const router = useRouter();
+const { success, error } = useFlashMessage();
 const items = ref([]);
 const deletingItemIds = ref(new Set());
+
 const pagination = ref({
   current_page: 1,
   per_page: 10,
@@ -31,7 +34,10 @@ watch(() => route.query, () => {
 const checkForSuccessMessage = () => {
   if (route.query.success && route.query.item) {
     const action = route.query.success === 'created' ? 'created' : 'updated';
-    alert(`Item "${route.query.item}" has been ${action} successfully!`);
+    success(
+      `Item ${action === 'created' ? 'Created' : 'Updated'}`,
+      `"${route.query.item}" has been ${action} successfully!`
+    );
 
     // Clear the query parameters
     router.replace({ path: '/items' });
@@ -55,7 +61,7 @@ const fetchItemsList = async (page = 1) => {
 
   } catch (error) {
     console.error('Error fetching items:', error);
-    alert('Error loading items. Please refresh the page.');
+    error('Loading Error', 'Error loading items. Please refresh the page.');
   } finally {
     isLoading.value = false;
   }
@@ -88,8 +94,6 @@ const deleteItem = async (itemId, itemName) => {
     const response = await axios.delete(`/api/items/${itemId}`);
 
     if (response.data) {
-      console.log('Item deleted successfully:', response.data);
-
       // Remove the item from the local array
       items.value = items.value.filter(item => item.id !== itemId);
 
@@ -100,18 +104,18 @@ const deleteItem = async (itemId, itemName) => {
         goToPage(pagination.value.current_page - 1);
       }
 
-      // Show success message
-      alert('Item deleted successfully!');
+      // Show success flash message
+      success('Item Deleted', `"${itemName}" has been deleted successfully.`);
     }
-  } catch (error) {
-    console.error('Error deleting item:', error);
+  } catch (deleteError) {
+    console.error('Error deleting item:', deleteError);
 
-    if (error.response && error.response.status === 404) {
-      alert('Item not found or already deleted.');
+    if (deleteError.response && deleteError.response.status === 404) {
+      error('Item Not Found', 'Item not found or already deleted.');
       // Refresh the list in case it was deleted by someone else
       fetchItemsList();
     } else {
-      alert('Error deleting item. Please try again.');
+      error('Delete Failed', 'Error deleting item. Please try again.');
     }
   } finally {
     // Remove this item ID from the deleting set
@@ -245,6 +249,8 @@ const isItemDeleting = (itemId) => {
       </div>
     </div>
   </section>
+
+
 </template>
 
 <style>

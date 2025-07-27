@@ -2,6 +2,7 @@
 import Navbar from '@/components/parts/Navbar.vue';
 import AsideMenu from '@/components/parts/AsideMenu.vue';
 import Footer from '@/components/parts/Footer.vue';
+import FlashMessageContainer from '@/components/FlashMessageContainer.vue';
 import { RouterView } from 'vue-router';
 </script>
 
@@ -14,6 +15,8 @@ import { RouterView } from 'vue-router';
 
     <Footer></Footer>
 
+    <!-- Flash Messages -->
+    <FlashMessageContainer />
 </template>
 
 

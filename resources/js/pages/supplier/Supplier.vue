@@ -3,11 +3,14 @@ import axios from 'axios';
 import { onMounted, ref, watch } from 'vue';
 import { useRoute, useRouter } from 'vue-router';
 import Pagination from '../../components/Pagination.vue';
+import { useFlashMessage } from '@/composables/useFlashMessage.js';
 
 const route = useRoute();
 const router = useRouter();
+const { success, error } = useFlashMessage();
 const suppliers = ref([]);
 const deletingSupplierIds = ref(new Set());
+
 const pagination = ref({
   current_page: 1,
   per_page: 10,
@@ -31,7 +34,10 @@ watch(() => route.query, () => {
 const checkForSuccessMessage = () => {
   if (route.query.success && route.query.supplier) {
     const action = route.query.success === 'created' ? 'created' : 'updated';
-    alert(`Supplier "${route.query.supplier}" has been ${action} successfully!`);
+    success(
+      `Supplier ${action === 'created' ? 'Created' : 'Updated'}`,
+      `"${route.query.supplier}" has been ${action} successfully!`
+    );
 
     // Clear the query parameters
     router.replace({ path: '/suppliers' });
@@ -55,7 +61,7 @@ const fetchSuppliersList = async (page = 1) => {
 
   } catch (error) {
     console.error('Error fetching suppliers:', error);
-    alert('Error loading suppliers. Please refresh the page.');
+    error('Loading Error', 'Error loading suppliers. Please refresh the page.');
   } finally {
     isLoading.value = false;
   }
@@ -88,8 +94,6 @@ const deleteSupplier = async (supplierId, supplierName) => {
     const response = await axios.delete(`/api/suppliers/${supplierId}`);
 
     if (response.data) {
-      console.log('Supplier deleted successfully:', response.data);
-
       // Remove the supplier from the local array
       suppliers.value = suppliers.value.filter(supplier => supplier.id !== supplierId);
 
@@ -100,18 +104,18 @@ const deleteSupplier = async (supplierId, supplierName) => {
         goToPage(pagination.value.current_page - 1);
       }
 
-      // Show success message
-      alert('Supplier deleted successfully!');
+      // Show success flash message
+      success('Supplier Deleted', `"${supplierName}" has been deleted successfully.`);
     }
-  } catch (error) {
-    console.error('Error deleting supplier:', error);
+  } catch (deleteError) {
+    console.error('Error deleting supplier:', deleteError);
 
-    if (error.response && error.response.status === 404) {
-      alert('Supplier not found or already deleted.');
+    if (deleteError.response && deleteError.response.status === 404) {
+      error('Supplier Not Found', 'Supplier not found or already deleted.');
       // Refresh the list in case it was deleted by someone else
       fetchSuppliersList();
     } else {
-      alert('Error deleting supplier. Please try again.');
+      error('Delete Failed', 'Error deleting supplier. Please try again.');
     }
   } finally {
     // Remove this supplier ID from the deleting set
@@ -271,9 +275,6 @@ const isSupplierDeleting = (supplierId) => {
       </div>
     </div>
   </section>
-
-
-
 </template>
 
 

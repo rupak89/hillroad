@@ -2,9 +2,11 @@
 import { ref, onMounted } from 'vue'
 import axios from 'axios'
 import { useRouter, useRoute } from 'vue-router'
+import { useFlashMessage } from '@/composables/useFlashMessage.js'
 
 const router = useRouter()
 const route = useRoute()
+const { success, error } = useFlashMessage()
 
 // Check if we're editing (has ID in route)
 const isEditing = ref(false)
@@ -85,25 +87,27 @@ const submitForm = async () => {
     }
 
     if (response.data) {
-      // Show success message (you might want to use a toast notification here)
-      console.log(`Supplier ${isEditing.value ? 'updated' : 'created'} successfully:`, response.data.supplier)
+      // Show success flash message
+      success(
+        `Supplier ${isEditing.value ? 'Updated' : 'Created'}`,
+        `"${response.data.supplier.supplier_name}" has been ${isEditing.value ? 'updated' : 'created'} successfully.`
+      )
 
-      // Redirect to suppliers list with a success message
-      router.push({
-        path: '/suppliers',
-        query: {
-          success: isEditing.value ? 'updated' : 'created',
-          supplier: response.data.supplier.supplier_name
-        }
-      })
+      // Redirect to suppliers list
+      router.push('/suppliers')
     }
   } catch (error) {
     if (error.response && error.response.status === 422) {
       // Validation errors
       errors.value = error.response.data.errors || {}
+      error('Validation Error', 'Please check the form for errors.')
     } else {
       console.error(`Error ${isEditing.value ? 'updating' : 'creating'} supplier:`, error)
       // Handle other errors (show general error message)
+      error(
+        `Error ${isEditing.value ? 'Updating' : 'Creating'} Supplier`,
+        'An unexpected error occurred. Please try again.'
+      )
     }
   } finally {
     isSubmitting.value = false
