@@ -71,6 +71,7 @@
                   <div class="select is-fullwidth">
                     <select
                       v-model="ingredient.item_id"
+                      @change="onItemChange(index, ingredient.item_id)"
                       :class="{ 'is-danger': errors[`ingredients.${index}.item_id`] }">
                       <option disabled value="">Select Item</option>
                       <option v-for="item in items" :key="item.id" :value="item.id">{{ item.item_name }}</option>
@@ -329,6 +330,19 @@ export default {
 
     addIngredient() {
       this.recipe.ingredients.push({ item_id: '', unit_id: '', quantity: '' });
+    },
+
+    onItemChange(ingredientIndex, itemId) {
+      // Find the selected item
+      const selectedItem = this.items.find(item => item.id == itemId);
+      
+      if (selectedItem && selectedItem.counting_unit_id) {
+        // Auto-select the counting unit for this ingredient
+        this.recipe.ingredients[ingredientIndex].unit_id = selectedItem.counting_unit_id;
+      } else {
+        // Clear unit if no counting unit is set
+        this.recipe.ingredients[ingredientIndex].unit_id = '';
+      }
     },
 
     removeIngredient(index) {

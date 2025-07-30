@@ -104,7 +104,7 @@ class RecipeController extends Controller
      */
     public function getDropdownData(string $excludeRecipeId = null)
     {
-        $items = \App\Models\Item::select('id', 'item_name')->orderBy('item_name')->get();
+        $items = \App\Models\Item::select('id', 'item_name', 'counting_unit_id')->orderBy('item_name')->get();
         $recipes = $this->recipeService->getRecipesForDropdown($excludeRecipeId);
 
         return response()->json([
@@ -157,7 +157,7 @@ class RecipeController extends Controller
             }
 
             $quantity = $request->input('quantity', $request->input('servings', 1)); // Accept both for backward compatibility
-            
+
             if ($quantity <= 0) {
                 return response()->json([
                     'message' => 'Quantity must be greater than 0',
@@ -186,7 +186,7 @@ class RecipeController extends Controller
     {
         try {
             $recipeIds = $request->input('recipe_ids', []);
-            
+
             if (empty($recipeIds)) {
                 return response()->json([
                     'message' => 'No recipe IDs provided',
