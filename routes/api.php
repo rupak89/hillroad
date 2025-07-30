@@ -32,6 +32,10 @@ Route::group(['middleware' => 'auth:sanctum'], function () {
 
     Route::apiResource('units', App\Http\Controllers\Api\UnitController::class);
 
+    Route::apiResource('recipes', App\Http\Controllers\Api\RecipeController::class);
+    Route::get('/recipes-dropdown-data/{excludeRecipeId?}', [App\Http\Controllers\Api\RecipeController::class, 'getDropdownData'])
+        ->name('api.recipes.dropdown-data');
+
     Route::get('/unittypes', [App\Http\Controllers\Api\UnitTypeController::class, 'index'])
         ->name('api.unittype.index');
 });

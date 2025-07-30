@@ -6,7 +6,7 @@ import Items from './pages/item/Items.vue';
 import AddSupplier from '@/pages/supplier/AddSupplier.vue';
 import AddUnit from '@/pages/unit/AddUnit.vue';
 import Supplier from './pages/supplier/Supplier.vue';
-import Recipes from './pages/recipe/recipes.vue';
+import Recipes from './pages/recipe/Recipes.vue';
 import Addrecipe from './pages/recipe/Addrecipe.vue';
 import Login from './pages/Login.vue';
 import DefaultLayout from './components/layouts/DefaultLayout.vue';
@@ -23,6 +23,7 @@ const routes = [
             { path: '/', component: Home },
             { path: '/recipes', component: Recipes },
             { path: '/recipes/add', component: Addrecipe },
+            { path: '/recipes/edit/:id', component: Addrecipe },
             { path: '/items', component: Items },
             { path: '/items/add', component: AddItem , name: 'additem'},
             { path: '/items/edit/:id', component: AddItem },

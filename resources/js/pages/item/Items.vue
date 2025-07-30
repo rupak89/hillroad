@@ -166,9 +166,10 @@ const isItemDeleting = (itemId) => {
               <tr>
                 <th class="image-cell"></th>
                 <th>Item Name</th>
+                <th>Latest Price</th>
                 <th>Supplier</th>
                 <th>Brand</th>
-                <th>Latest Price</th>
+
                 <th></th>
               </tr>
             </thead>
@@ -177,10 +178,11 @@ const isItemDeleting = (itemId) => {
                 <td class="image-cell">
                   <span class="icon"><i class="mdi mdi-package-variant"></i></span>
                 </td>
-                <td data-label="Item Name">{{ item.item_name }}</td>
+                <td data-label="Item Name">{{ item.item_name }} - {{ item.ordering_unit.name }} </td>
+                <td data-label="Latest Price">${{ item.latest_price || 'N/A' }}</td>
                 <td data-label="Supplier">{{ item.supplier ? item.supplier.supplier_name : 'N/A' }}</td>
                 <td data-label="Brand">{{ item.default_brand ? item.default_brand.name : 'N/A' }}</td>
-                <td data-label="Latest Price">${{ item.latest_price || 'N/A' }}</td>
+
 
                 <td class="actions-cell">
                   <div class="buttons right nowrap">
@@ -213,16 +215,17 @@ const isItemDeleting = (itemId) => {
                 >
                 <div>
                   <span class="icon"><i class="mdi mdi-package-variant"></i></span>
-                  {{ item.item_name }}
-                </div>
-                <div>
-                  <span class="icon"><i class="mdi mdi-domain"></i></span>
-                  {{ item.supplier ? item.supplier.supplier_name : 'No Supplier' }}
+                  {{ item.item_name }} - {{ item.ordering_unit.name }}
                 </div>
                 <div v-if="item.latest_price">
                   <span class="icon"><i class="mdi mdi-currency-usd"></i></span>
                   ${{ item.latest_price }}
                 </div>
+                <div>
+                  <span class="icon"><i class="mdi mdi-domain"></i></span>
+                  {{ item.supplier ? item.supplier.supplier_name : 'No Supplier' }}
+                </div>
+
               </router-link>
 
               <div class="buttons right nowrap">

@@ -15,7 +15,7 @@ class ItemService
      */
     public function getItems($perPage = 10)
     {
-        return Item::with(['supplier', 'defaultBrand', 'group'])
+        return Item::with(['supplier', 'defaultBrand', 'group', 'orderingUnit', 'countingUnit'])
             ->orderBy('item_name')
             ->paginate($perPage);
     }
