@@ -134,6 +134,26 @@ const formatDate = (dateString) => {
     day: 'numeric'
   });
 };
+
+const calculateRecipeCost = async (recipeId, index) => {
+  // Set loading state
+  recipes.value[index].isCalculatingCost = true;
+
+  try {
+    const response = await axios.get(`/api/recipes/${recipeId}/cost`);
+
+    if (response.data.success) {
+      recipes.value[index].calculatedCost = response.data.cost_data.total_cost;
+    } else {
+      error('Cost Calculation Failed', response.data.message || 'Failed to calculate recipe cost');
+    }
+  } catch (calcError) {
+    console.error('Error calculating recipe cost:', calcError);
+    error('Cost Calculation Error', 'Error calculating recipe cost. Please try again.');
+  } finally {
+    recipes.value[index].isCalculatingCost = false;
+  }
+};
 </script>
 
 <template>
@@ -174,8 +194,9 @@ const formatDate = (dateString) => {
           <thead>
           <tr>
             <th class="image-cell"></th>
-            <th>Recipe Name</th>
+            <th>Name</th>
             <th>Instructions</th>
+            <th>Cost</th>
             <th>Created At</th>
             <th></th>
           </tr>
@@ -191,6 +212,18 @@ const formatDate = (dateString) => {
                 {{ recipe.instruction.length > 50 ? recipe.instruction.substring(0, 50) + '...' : recipe.instruction }}
               </span>
               <span v-else class="text-gray-400">No instructions</span>
+            </td>
+            <td data-label="Cost">
+              <button
+                class="button is-small is-info"
+                @click="calculateRecipeCost(recipe.id, index)"
+                :class="{ 'is-loading': recipe.isCalculatingCost }"
+                :disabled="recipe.isCalculatingCost">
+                <span v-if="recipe.calculatedCost !== undefined">
+                  ${{ recipe.calculatedCost.toFixed(2) }}
+                </span>
+                <span v-else>Calculate</span>
+              </button>
             </td>
             <td data-label="Created">
               <small class="text-gray-500">{{ formatDate(recipe.created_at) }}</small>

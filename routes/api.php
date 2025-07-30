@@ -36,6 +36,14 @@ Route::group(['middleware' => 'auth:sanctum'], function () {
     Route::get('/recipes-dropdown-data/{excludeRecipeId?}', [App\Http\Controllers\Api\RecipeController::class, 'getDropdownData'])
         ->name('api.recipes.dropdown-data');
 
+    // Recipe cost calculation routes
+    Route::get('/recipes/{id}/cost', [App\Http\Controllers\Api\RecipeController::class, 'calculateCost'])
+        ->name('api.recipes.cost');
+    Route::post('/recipes/{id}/cost-per-serving', [App\Http\Controllers\Api\RecipeController::class, 'calculateCostPerServing'])
+        ->name('api.recipes.cost-per-serving');
+    Route::post('/recipes/calculate-multiple-costs', [App\Http\Controllers\Api\RecipeController::class, 'calculateMultipleCosts'])
+        ->name('api.recipes.multiple-costs');
+
     Route::get('/unittypes', [App\Http\Controllers\Api\UnitTypeController::class, 'index'])
         ->name('api.unittype.index');
 });

@@ -5,11 +5,15 @@ namespace App\Http\Controllers\Api;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\RecipeRequest;
 use App\Services\RecipeService;
+use App\Services\RecipeCostService;
+use Illuminate\Http\Request;
 
 class RecipeController extends Controller
 {
-    public function __construct(private RecipeService $recipeService)
-    {
+    public function __construct(
+        private RecipeService $recipeService,
+        private RecipeCostService $recipeCostService
+    ) {
     }
 
     /**
@@ -107,5 +111,100 @@ class RecipeController extends Controller
             'items' => $items,
             'recipes' => $recipes,
         ]);
+    }
+
+    /**
+     * Calculate recipe cost
+     */
+    public function calculateCost(string $id)
+    {
+        try {
+            $recipe = $this->recipeService->getRecipe($id);
+
+            if (!$recipe) {
+                return response()->json([
+                    'message' => 'Recipe not found',
+                ], 404);
+            }
+
+            $costData = $this->recipeCostService->calculateRecipeCost($recipe);
+
+            return response()->json([
+                'success' => true,
+                'cost_data' => $costData
+            ]);
+        } catch (\Exception $e) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Error calculating recipe cost',
+                'error' => $e->getMessage()
+            ], 500);
+        }
+    }
+
+    /**
+     * Calculate cost per quantity (servings/units)
+     */
+    public function calculateCostPerServing(string $id, Request $request)
+    {
+        try {
+            $recipe = $this->recipeService->getRecipe($id);
+
+            if (!$recipe) {
+                return response()->json([
+                    'message' => 'Recipe not found',
+                ], 404);
+            }
+
+            $quantity = $request->input('quantity', $request->input('servings', 1)); // Accept both for backward compatibility
+            
+            if ($quantity <= 0) {
+                return response()->json([
+                    'message' => 'Quantity must be greater than 0',
+                ], 400);
+            }
+
+            $costData = $this->recipeCostService->calculateCostPerServing($recipe, $quantity);
+
+            return response()->json([
+                'success' => true,
+                'cost_data' => $costData
+            ]);
+        } catch (\Exception $e) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Error calculating recipe cost per serving',
+                'error' => $e->getMessage()
+            ], 500);
+        }
+    }
+
+    /**
+     * Get cost summary for multiple recipes
+     */
+    public function calculateMultipleCosts(Request $request)
+    {
+        try {
+            $recipeIds = $request->input('recipe_ids', []);
+            
+            if (empty($recipeIds)) {
+                return response()->json([
+                    'message' => 'No recipe IDs provided',
+                ], 400);
+            }
+
+            $costData = $this->recipeCostService->calculateMultipleRecipesCost($recipeIds);
+
+            return response()->json([
+                'success' => true,
+                'cost_data' => $costData
+            ]);
+        } catch (\Exception $e) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Error calculating multiple recipe costs',
+                'error' => $e->getMessage()
+            ], 500);
+        }
     }
 }

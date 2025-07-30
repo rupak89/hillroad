@@ -1,5 +1,10 @@
 <template>
   <section class="section main-section">
+    <router-link to="/recipes" class="button is-small">
+      <span class="icon"><i class="mdi mdi-arrow-left"></i></span>
+      <span class="sm:hidden lg:inline">Back</span>
+    </router-link>
+
     <div class="card mb-6">
       <header class="card-header">
         <p class="card-header-title">
@@ -176,6 +181,13 @@
 
           <hr>
 
+          <!-- Recipe Cost Calculator (only show in edit mode) -->
+          <div v-if="isEditMode && recipeId" class="field">
+            <RecipeCostCalculator :recipe-id="recipeId" />
+          </div>
+
+          <hr>
+
           <!-- Submit Buttons -->
           <div class="field grouped">
             <div class="control">
@@ -204,8 +216,12 @@
 import axios from 'axios';
 import { useFlashMessage } from '@/composables/useFlashMessage.js';
 import useItemStore from '@/stores/item.js';
+import RecipeCostCalculator from '@/components/RecipeCostCalculator.vue';
 
 export default {
+  components: {
+    RecipeCostCalculator
+  },
   setup() {
     const { success, error } = useFlashMessage();
     const itemStore = useItemStore();
