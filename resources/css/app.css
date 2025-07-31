@@ -1,4 +1,5 @@
 @import 'tailwindcss';
+@import '@vueform/multiselect/themes/default.css';
 
 @source "./resources/**/*.blade.php";
 @source "./resources/**/*.js";
