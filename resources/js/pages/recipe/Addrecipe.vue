@@ -68,15 +68,22 @@
             <div v-for="(ingredient, index) in recipe.ingredients" :key="'ingredient-' + index" class="ingredient-row mb-3">
               <div class="ingredient-item">
                 <div class="control">
-                  <div class="select is-fullwidth">
-                    <select
-                      v-model="ingredient.item_id"
-                      @change="onItemChange(index, ingredient.item_id)"
-                      :class="{ 'is-danger': errors[`ingredients.${index}.item_id`] }">
-                      <option disabled value="">Select Item</option>
-                      <option v-for="item in items" :key="item.id" :value="item.id">{{ item.item_name }}</option>
-                    </select>
-                  </div>
+                  <Multiselect
+                    v-model="ingredient.item_id"
+                    :options="items"
+                    label="item_name"
+                    value-prop="id"
+                    placeholder="Search and select item..."
+                    :searchable="true"
+                    :clear-on-select="false"
+                    :close-on-select="true"
+                    :can-deselect="true"
+                    :classes="{
+                      container: errors[`ingredients.${index}.item_id`] ? 'multiselect-error' : '',
+                      containerActive: 'is-active'
+                    }"
+                    @change="(value) => onItemChange(index, value)"
+                  />
                 </div>
                 <p v-if="errors[`ingredients.${index}.item_id`]" class="help is-danger is-size-7">
                   {{ errors[`ingredients.${index}.item_id`][0] }}
@@ -84,16 +91,21 @@
               </div>
               <div class="ingredient-unit">
                 <div class="control">
-                  <div class="select is-fullwidth">
-                    <select
-                      v-model="ingredient.unit_id"
-                      :class="{ 'is-danger': errors[`ingredients.${index}.unit_id`] }">
-                      <option disabled value="">Select Unit</option>
-                      <option v-for="unit in availableUnits" :key="unit.id" :value="unit.id">
-                        {{ unit.name }}
-                      </option>
-                    </select>
-                  </div>
+                  <Multiselect
+                    v-model="ingredient.unit_id"
+                    :options="availableUnits"
+                    label="name"
+                    value-prop="id"
+                    placeholder="Search and select unit..."
+                    :searchable="true"
+                    :clear-on-select="false"
+                    :close-on-select="true"
+                    :can-deselect="true"
+                    :classes="{
+                      container: errors[`ingredients.${index}.unit_id`] ? 'multiselect-error' : '',
+                      containerActive: 'is-active'
+                    }"
+                  />
                 </div>
                 <p v-if="errors[`ingredients.${index}.unit_id`]" class="help is-danger is-size-7">
                   {{ errors[`ingredients.${index}.unit_id`][0] }}
@@ -137,14 +149,21 @@
             <div v-for="(sub, index) in recipe.sub_recipes" :key="'sub-' + index" class="sub-recipe-row mb-3">
               <div class="sub-recipe-item">
                 <div class="control">
-                  <div class="select is-fullwidth">
-                    <select
-                      v-model="sub.child_recipe_id"
-                      :class="{ 'is-danger': errors[`sub_recipes.${index}.child_recipe_id`] }">
-                      <option disabled value="">Select Sub-Recipe</option>
-                      <option v-for="r in availableRecipes" :key="r.id" :value="r.id">{{ r.recipe_name }}</option>
-                    </select>
-                  </div>
+                  <Multiselect
+                    v-model="sub.child_recipe_id"
+                    :options="availableRecipes"
+                    label="recipe_name"
+                    value-prop="id"
+                    placeholder="Search and select sub-recipe..."
+                    :searchable="true"
+                    :clear-on-select="false"
+                    :close-on-select="true"
+                    :can-deselect="true"
+                    :classes="{
+                      container: errors[`sub_recipes.${index}.child_recipe_id`] ? 'multiselect-error' : '',
+                      containerActive: 'is-active'
+                    }"
+                  />
                 </div>
                 <p v-if="errors[`sub_recipes.${index}.child_recipe_id`]" class="help is-danger is-size-7">
                   {{ errors[`sub_recipes.${index}.child_recipe_id`][0] }}
@@ -218,10 +237,12 @@ import axios from 'axios';
 import { useFlashMessage } from '@/composables/useFlashMessage.js';
 import useItemStore from '@/stores/item.js';
 import RecipeCostCalculator from '@/components/RecipeCostCalculator.vue';
+import Multiselect from '@vueform/multiselect';
 
 export default {
   components: {
-    RecipeCostCalculator
+    RecipeCostCalculator,
+    Multiselect
   },
   setup() {
     const { success, error } = useFlashMessage();
@@ -335,7 +356,7 @@ export default {
     onItemChange(ingredientIndex, itemId) {
       // Find the selected item
       const selectedItem = this.items.find(item => item.id == itemId);
-      
+
       if (selectedItem && selectedItem.counting_unit_id) {
         // Auto-select the counting unit for this ingredient
         this.recipe.ingredients[ingredientIndex].unit_id = selectedItem.counting_unit_id;
@@ -558,5 +579,77 @@ export default {
     justify-self: end;
     padding-top: 0;
   }
+}
+
+/* Multiselect styling to match Bulma theme */
+:deep(.multiselect) {
+  min-height: 2.5rem;
+  border-radius: 4px;
+  border: 1px solid #dbdbdb;
+  background: white;
+}
+
+:deep(.multiselect.is-active) {
+  border-color: #3273dc;
+  box-shadow: 0 0 0 0.125em rgba(50, 115, 220, 0.25);
+}
+
+:deep(.multiselect-error) {
+  border-color: #ff3860 !important;
+}
+
+:deep(.multiselect-error.is-active) {
+  box-shadow: 0 0 0 0.125em rgba(255, 56, 96, 0.25) !important;
+}
+
+:deep(.multiselect-wrapper) {
+  position: relative;
+}
+
+:deep(.multiselect-input) {
+  border: none;
+  outline: none;
+  background: transparent;
+  padding: 0.5rem 0.75rem;
+  font-size: 1rem;
+}
+
+:deep(.multiselect-single-label) {
+  padding: 0.5rem 0.75rem;
+  font-size: 1rem;
+  line-height: 1.5;
+}
+
+:deep(.multiselect-placeholder) {
+  padding: 0.5rem 0.75rem;
+  color: #b5b5b5;
+  font-size: 1rem;
+}
+
+:deep(.multiselect-dropdown) {
+  border: 1px solid #dbdbdb;
+  border-top: none;
+  border-radius: 0 0 4px 4px;
+  max-height: 200px;
+  background: white;
+}
+
+:deep(.multiselect-option) {
+  padding: 0.5rem 0.75rem;
+  font-size: 1rem;
+  cursor: pointer;
+}
+
+:deep(.multiselect-option:hover) {
+  background: #f5f5f5;
+}
+
+:deep(.multiselect-option.is-selected) {
+  background: #3273dc;
+  color: white;
+}
+
+:deep(.multiselect-option.is-highlighted) {
+  background: #f5f5f5;
 }
 </style>
