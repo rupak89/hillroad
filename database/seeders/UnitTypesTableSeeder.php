@@ -13,7 +13,7 @@ class UnitTypesTableSeeder extends Seeder
     {
         DB::table('unit_types')->insert([
             [
-                'label' => '1 Kilogram',
+                'label' => 'Weight (1 kg)',
                 'physical_type' => UnitType::Mass->value,
                 'base_unit' => 'kilogram',
                 'unit_name_plural' => 'kilograms',
@@ -23,7 +23,7 @@ class UnitTypesTableSeeder extends Seeder
                 'updated_at' => Carbon::now(),
             ],
             [
-                'label' => '1 Gram',
+                'label' => 'Weight (1 g)',
                 'physical_type' => UnitType::Mass->value,
                 'base_unit' => 'gram',
                 'unit_name_plural' => 'grams',
@@ -33,7 +33,7 @@ class UnitTypesTableSeeder extends Seeder
                 'updated_at' => Carbon::now(),
             ],
             [
-                'label' => '1 Pound',
+                'label' => 'Weight (1 lb)',
                 'physical_type' => UnitType::Mass->value,
                 'base_unit' => 'pound',
                 'unit_name_plural' => 'pounds',
@@ -43,7 +43,7 @@ class UnitTypesTableSeeder extends Seeder
                 'updated_at' => Carbon::now(),
             ],
             [
-                'label' => '1 Liter',
+                'label' => 'Volume (1 L)',
                 'physical_type' => UnitType::Volume->value,
                 'base_unit' => 'liter',
                 'unit_name_plural' => 'liters',
@@ -53,12 +53,22 @@ class UnitTypesTableSeeder extends Seeder
                 'updated_at' => Carbon::now(),
             ],
             [
-                'label' => '1 Milliliter',
+                'label' => 'Volume(1 ml)',
                 'physical_type' => UnitType::Volume->value,
                 'base_unit' => 'milliliter',
                 'unit_name_plural' => 'milliliters',
                 'unit_name_short' => 'ml',
                 'unit_name_short_plural' => 'mls',
+                'created_at' => Carbon::now(),
+                'updated_at' => Carbon::now(),
+            ],
+            [
+                'label' => 'Piece',
+                'physical_type' => UnitType::Count->value,
+                'base_unit' => 'piece',
+                'unit_name_plural' => 'pieces',
+                'unit_name_short' => 'pc',
+                'unit_name_short_plural' => 'pcs',
                 'created_at' => Carbon::now(),
                 'updated_at' => Carbon::now(),
             ],

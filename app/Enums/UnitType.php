@@ -10,6 +10,7 @@ enum UnitType: string
     case Volume = \PhpUnitsOfMeasure\PhysicalQuantity\Volume::class;
     case Temperature = \PhpUnitsOfMeasure\PhysicalQuantity\Temperature::class;
     case Time = \PhpUnitsOfMeasure\PhysicalQuantity\Time::class;
+    case Count = \App\Units\Count::class;
 
     public function getLabel(): string
     {
@@ -19,6 +20,7 @@ enum UnitType: string
             self::Volume => 'Volume',
             self::Temperature => 'Temperature',
             self::Time => 'Time',
+            self::Count => 'Count',
         };
     }
 }
