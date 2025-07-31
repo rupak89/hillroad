@@ -93,7 +93,7 @@
                 <div class="control">
                   <Multiselect
                     v-model="ingredient.unit_id"
-                    :options="availableUnits"
+                    :options="getAvailableUnitsForIngredient(index)"
                     label="name"
                     value-prop="id"
                     placeholder="Search and select unit..."
@@ -283,6 +283,29 @@ export default {
     },
     availableUnits() {
       return this.itemStore.units || [];
+    },
+    getAvailableUnitsForIngredient() {
+      return (ingredientIndex) => {
+        const ingredient = this.recipe.ingredients[ingredientIndex];
+        if (!ingredient.item_id) {
+          return this.availableUnits;
+        }
+
+        // Find the selected item
+        const selectedItem = this.items.find(item => item.id == ingredient.item_id);
+        if (!selectedItem || !selectedItem.counting_unit_id) {
+          return this.availableUnits;
+        }
+
+        // Find the counting unit to get its unit_type_id
+        const countingUnit = this.availableUnits.find(unit => unit.id == selectedItem.counting_unit_id);
+        if (!countingUnit) {
+          return this.availableUnits;
+        }
+
+        // Filter units to only show those with the same unit_type_id
+        return this.availableUnits.filter(unit => unit.unit_type_id === countingUnit.unit_type_id);
+      };
     }
   },
   methods: {
