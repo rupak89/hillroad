@@ -222,7 +222,7 @@ const calculateRecipeCost = async (recipeId, index) => {
                 <span v-if="recipe.calculatedCost !== undefined">
                   ${{ recipe.calculatedCost.toFixed(2) }}
                 </span>
-                <span v-else>Calculate</span>
+                <span v-else>View</span>
               </button>
             </td>
             <td data-label="Created">
