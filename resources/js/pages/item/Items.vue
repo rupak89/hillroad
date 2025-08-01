@@ -179,7 +179,15 @@ const isItemDeleting = (itemId) => {
                   <span class="icon"><i class="mdi mdi-package-variant"></i></span>
                 </td>
                 <td data-label="Item Name">{{ item.item_name }} - {{ item.ordering_unit.name }} </td>
-                <td data-label="Latest Price">${{ item.latest_price || 'N/A' }}</td>
+                <td data-label="Latest Price">
+                  <div v-if="item.latest_price && item.ordering_unit">
+                    <strong>${{ item.latest_price }}</strong>
+
+                  </div>
+                  <div v-else class="has-text-grey">
+                    N/A
+                  </div>
+                </td>
                 <td data-label="Supplier">{{ item.supplier ? item.supplier.supplier_name : 'N/A' }}</td>
                 <td data-label="Brand">{{ item.default_brand ? item.default_brand.name : 'N/A' }}</td>
 
