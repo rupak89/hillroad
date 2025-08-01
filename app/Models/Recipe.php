@@ -9,6 +9,7 @@ class Recipe extends Model
     protected $fillable = [
         'recipe_name',
         'instruction',
+        'servings',
         'thumbnail',
     ];
 
