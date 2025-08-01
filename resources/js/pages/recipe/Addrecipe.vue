@@ -17,6 +17,7 @@
           <div class="button is-loading is-static">Loading recipe data...</div>
         </div>
         <form v-else @submit.prevent="submitForm">
+
           <!-- Recipe Name -->
           <div class="field">
             <label class="label">Recipe Name</label>
@@ -30,6 +31,23 @@
                 >
             </div>
             <p v-if="errors.recipe_name" class="help is-danger">{{ errors.recipe_name[0] }}</p>
+          </div>
+
+          <!-- Servings -->
+          <div class="field">
+            <label class="label">Servings</label>
+            <div class="control">
+              <input
+                class="input"
+                :class="{ 'is-danger': errors.servings }"
+                type="number"
+                min="1"
+                step="1"
+                placeholder="e.g. 4"
+                v-model.number="recipe.servings">
+            </div>
+            <p v-if="errors.servings" class="help is-danger">{{ errors.servings[0] }}</p>
+            <p class="help">Number of servings this recipe makes</p>
           </div>
 
           <!-- Instructions -->
@@ -254,6 +272,7 @@ export default {
       recipe: {
         recipe_name: '',
         instruction: '',
+        servings: 1,
         thumbnail: '',
         ingredients: [
           { item_id: '', unit_id: '', quantity: '' }
@@ -337,6 +356,7 @@ export default {
         this.recipeId = recipeData.id;
         this.recipe.recipe_name = recipeData.recipe_name;
         this.recipe.instruction = recipeData.instruction || '';
+        this.recipe.servings = recipeData.servings || 1;
         this.recipe.thumbnail = recipeData.thumbnail || '';
 
         // Populate ingredients
@@ -409,6 +429,7 @@ export default {
       this.recipe = {
         recipe_name: '',
         instruction: '',
+        servings: 1,
         thumbnail: '',
         ingredients: [{ item_id: '', unit_id: '', quantity: '' }],
         sub_recipes: [{ child_recipe_id: '', quantity: '' }]
