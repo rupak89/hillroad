@@ -1,6 +1,6 @@
 <script setup>
 import Navbar from '@/components/parts/Navbar.vue';
-import AsideMenu from '@/components/parts/AsideMenu.vue';
+import AsideMenu from '@/components/parts/Asidemenu.vue';
 import Footer from '@/components/parts/Footer.vue';
 import FlashMessageContainer from '@/components/FlashMessageContainer.vue';
 import { RouterView } from 'vue-router';
