@@ -16,13 +16,13 @@ class DatabaseSeeder extends Seeder
     {
         // User::factory(10)->create();
 
-        // User::factory()->create([
-        //     'name' => 'Admin',
-        //     'email' => 'hillroad@coffeesolutions.org.nz',
-        //     'password' => Hash::make('hill@coffee'), // Ensure to use a secure password
-        // ]);
+        User::factory()->create([
+            'name' => 'Admin',
+            'email' => 'hillroad@coffeesolutions.org.nz',
+            'password' => Hash::make('hill@coffee'), // Ensure to use a secure password
+        ]);
 
-        // $this->call(\Database\Seeders\UnitTypesTableSeeder::class);
-        $this->call(\Database\Seeders\SupplierSeeder::class);
+        $this->call(\Database\Seeders\UnitTypesTableSeeder::class);
+        //$this->call(\Database\Seeders\SupplierSeeder::class);
     }
 }
