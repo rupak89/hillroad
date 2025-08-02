@@ -30,7 +30,7 @@ class RecipeCostService
             try {
                 if ($unitId && $quantity > 0) {
                     $unit = Unit::find($unitId);
-                    if ($unit) {
+                    if ($unit && $item->latest_price > 0) {
                         $itemCost = $item->calculateCostForUnit($unit, $quantity);
                         $totalCost += $itemCost;
 
@@ -43,21 +43,41 @@ class RecipeCostService
                             'ordering_unit' => $item->orderingUnit ? $item->orderingUnit->name : 'N/A',
                             'cost_per_unit' => $item->getFormattedCostPerUnit(),
                             'total_cost' => $itemCost,
-                            'can_calculate' => $item->latest_price > 0
+                            'can_calculate' => true
                         ];
                     } else {
-                        $errors[] = "Unit not found for ingredient: {$item->item_name}";
+                        $error = !$unit ? "Unit not found for ingredient: {$item->item_name}" : 
+                                         "No price available for ingredient: {$item->item_name}";
+                        $errors[] = $error;
+                        
+                        $itemCosts[] = [
+                            'item_id' => $item->id,
+                            'item_name' => $item->item_name,
+                            'quantity' => $quantity,
+                            'unit' => $unit ? $unit->name : 'N/A',
+                            'unit_cost' => $item->latest_price ?? 0,
+                            'ordering_unit' => $item->orderingUnit ? $item->orderingUnit->name : 'N/A',
+                            'cost_per_unit' => $item->getFormattedCostPerUnit(),
+                            'total_cost' => 0,
+                            'can_calculate' => false,
+                            'error' => $error
+                        ];
                     }
                 } else {
+                    $error = !$unitId ? 'Missing unit' : 'Missing or invalid quantity';
+                    $errors[] = "Invalid data for ingredient {$item->item_name}: {$error}";
+                    
                     $itemCosts[] = [
                         'item_id' => $item->id,
                         'item_name' => $item->item_name,
                         'quantity' => $quantity,
                         'unit' => 'N/A',
-                        'unit_cost' => 0,
+                        'unit_cost' => $item->latest_price ?? 0,
+                        'ordering_unit' => $item->orderingUnit ? $item->orderingUnit->name : 'N/A',
+                        'cost_per_unit' => $item->getFormattedCostPerUnit(),
                         'total_cost' => 0,
                         'can_calculate' => false,
-                        'error' => 'Missing unit or quantity'
+                        'error' => $error
                     ];
                 }
             } catch (\Exception $e) {
@@ -67,6 +87,19 @@ class RecipeCostService
                     'item_id' => $item->id,
                     'error' => $e->getMessage()
                 ]);
+                
+                $itemCosts[] = [
+                    'item_id' => $item->id,
+                    'item_name' => $item->item_name,
+                    'quantity' => $quantity,
+                    'unit' => 'N/A',
+                    'unit_cost' => $item->latest_price ?? 0,
+                    'ordering_unit' => $item->orderingUnit ? $item->orderingUnit->name : 'N/A',
+                    'cost_per_unit' => $item->getFormattedCostPerUnit(),
+                    'total_cost' => 0,
+                    'can_calculate' => false,
+                    'error' => $e->getMessage()
+                ];
             }
         }
 
@@ -143,7 +176,16 @@ class RecipeCostService
      */
     public function calculateMultipleRecipesCost(array $recipeIds)
     {
-        $recipes = Recipe::with(['items.orderingUnit', 'subRecipes'])->whereIn('id', $recipeIds)->get();
+        $recipes = Recipe::with([
+            'items.orderingUnit', 
+            'items.countingUnit',
+            'items' => function($query) {
+                $query->withPivot('unit_id', 'quantity');
+            },
+            'subRecipes' => function($query) {
+                $query->withPivot('quantity');
+            }
+        ])->whereIn('id', $recipeIds)->get();
         $results = [];
 
         foreach ($recipes as $recipe) {

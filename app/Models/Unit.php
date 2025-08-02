@@ -35,29 +35,72 @@ class Unit extends Model
             return $quantity;
         }
 
-        // If different unit types, cannot convert
-        if ($this->unit_type_id !== $targetUnit->unit_type_id) {
-            throw new \Exception("Cannot convert between different unit types: {$this->unitType->name} and {$targetUnit->unitType->name}");
-        }
+        // Load unit types if not already loaded
+        $this->load('unitType');
+        $targetUnit->load('unitType');
 
-        $unitType = $this->unitType;
-
-        // Try PHPUnitsOfMeasure library first for standard conversions
-        if ($unitType->physical_type) {
-            try {
-                $physicalQuantity = $unitType->getPhysicalQuantityInstance($quantity, $this->name);
-                return $physicalQuantity->toUnit($targetUnit->name);
-            } catch (\Exception $e) {
-                // If PHPUnitsOfMeasure fails, fallback to ratio conversion
-            }
-        }
-
-        // Fallback to ratio-based conversion
-        if ($this->ratio && $targetUnit->ratio) {
+        // For units of the same unit type, prefer ratio-based conversion
+        if ($this->unit_type_id === $targetUnit->unit_type_id && $this->ratio && $targetUnit->ratio) {
             return ($quantity * $this->ratio) / $targetUnit->ratio;
         }
 
+        // If different unit types, check if they have the same physical_type
+        if ($this->unit_type_id !== $targetUnit->unit_type_id) {
+            if (!$this->unitType->physical_type || 
+                !$targetUnit->unitType->physical_type || 
+                $this->unitType->physical_type !== $targetUnit->unitType->physical_type) {
+                throw new \Exception("Cannot convert between different unit types: {$this->unitType->label} and {$targetUnit->unitType->label}");
+            }
+        }
+
+        // Try PHPUnitsOfMeasure library for cross-unit-type conversions
+        if ($this->unitType->physical_type && $this->unit_type_id !== $targetUnit->unit_type_id) {
+            try {
+                // Map unit names to PHPUnitsOfMeasure compatible names
+                $sourceUnitName = $this->getPhysicalUnitName();
+                $targetUnitName = $targetUnit->getPhysicalUnitName();
+                
+                // Convert quantity to actual physical amount first (accounting for ratios)
+                $actualSourceAmount = $quantity * $this->ratio;
+                
+                $physicalQuantity = $this->unitType->getPhysicalQuantityInstance($actualSourceAmount, $sourceUnitName);
+                $actualTargetAmount = $physicalQuantity->toUnit($targetUnitName);
+                
+                // Convert back to target unit's ratio
+                return $actualTargetAmount / $targetUnit->ratio;
+            } catch (\Exception $e) {
+                // If PHPUnitsOfMeasure fails, try the target unit type
+                try {
+                    $sourceUnitName = $this->getPhysicalUnitName();
+                    $targetUnitName = $targetUnit->getPhysicalUnitName();
+                    
+                    // Convert quantity to actual physical amount first (accounting for ratios)
+                    $actualSourceAmount = $quantity * $this->ratio;
+                    
+                    $physicalQuantity = $targetUnit->unitType->getPhysicalQuantityInstance($actualSourceAmount, $sourceUnitName);
+                    $actualTargetAmount = $physicalQuantity->toUnit($targetUnitName);
+                    
+                    // Convert back to target unit's ratio
+                    return $actualTargetAmount / $targetUnit->ratio;
+                } catch (\Exception $e2) {
+                    // Fall through to error
+                }
+            }
+        }
+
         throw new \Exception("Cannot convert from {$this->name} to {$targetUnit->name}: no conversion method available");
+    }
+
+    /**
+     * Get the PHPUnitsOfMeasure compatible unit name
+     */
+    protected function getPhysicalUnitName()
+    {
+        // Ensure unitType is loaded
+        $this->load('unitType');
+        
+        // Use the base_unit from the unitType, which is already PHPUnitsOfMeasure compatible
+        return $this->unitType->base_unit;
     }
 
     /**
@@ -83,6 +126,17 @@ class Unit extends Model
      */
     public function canConvertTo(Unit $targetUnit)
     {
-        return $this->unit_type_id === $targetUnit->unit_type_id;
+        // Same unit type can always convert
+        if ($this->unit_type_id === $targetUnit->unit_type_id) {
+            return true;
+        }
+
+        // Different unit types can convert if they have the same physical_type
+        $this->load('unitType');
+        $targetUnit->load('unitType');
+        
+        return $this->unitType->physical_type && 
+               $targetUnit->unitType->physical_type && 
+               $this->unitType->physical_type === $targetUnit->unitType->physical_type;
     }
 }
