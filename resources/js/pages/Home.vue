@@ -19,28 +19,34 @@ import { onMounted } from 'vue';
 
         <section class="section main-section">
             <div class="grid gap-6 grid-cols-1 md:grid-cols-3 mb-6">
+                <router-link to="/recipes">
+                    <div class="card">
+                        <div class="card-content">
+                        <div class="flex items-center justify-between">
+                            <div class="widget-label">
+
+                                <h3>Recipe</h3>
+
+                            <h1>
+                                512
+                            </h1>
+                            </div>
+                            <span class="icon widget-icon text-green-500"><i class="mdi mdi-account-multiple mdi-48px"></i></span>
+                        </div>
+                        </div>
+                    </div>
+            </router-link>
+
+            <router-link to="/items">
             <div class="card">
                 <div class="card-content">
                 <div class="flex items-center justify-between">
                     <div class="widget-label">
+
                     <h3>
                         Items
                     </h3>
-                    <h1>
-                        512
-                    </h1>
-                    </div>
-                    <span class="icon widget-icon text-green-500"><i class="mdi mdi-account-multiple mdi-48px"></i></span>
-                </div>
-                </div>
-            </div>
-            <div class="card">
-                <div class="card-content">
-                <div class="flex items-center justify-between">
-                    <div class="widget-label">
-                    <h3>
-                        Recipes
-                    </h3>
+
                     <h1>
                         770
                     </h1>
@@ -49,14 +55,18 @@ import { onMounted } from 'vue';
                 </div>
                 </div>
             </div>
+            </router-link>
 
+            <router-link to="/menus">
             <div class="card">
                 <div class="card-content">
                 <div class="flex items-center justify-between">
                     <div class="widget-label">
-                    <h3>
-                        Suppliers
-                    </h3>
+
+                        <h3>
+                        Menu
+                        </h3>
+
                     <h1>
                         25
                     </h1>
@@ -65,6 +75,7 @@ import { onMounted } from 'vue';
                 </div>
                 </div>
             </div>
+            </router-link>
             </div>
 
             <div class="card mb-6">
