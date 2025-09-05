@@ -11,6 +11,11 @@ class Brand extends Model
         'description'
     ];
 
-
-
+    /**
+     * Get the items associated with the brand.
+     */
+    public function items()
+    {
+        return $this->hasMany(Item::class, 'default_brand_id');
+    }
 }

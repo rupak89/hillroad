@@ -18,11 +18,14 @@ class BrandController extends Controller
     /**
      * Display a listing of the resource.
      */
-    public function index()
+    public function index(Request $request)
     {
+        $perPage = $request->get('per_page', 10);
+        $brands = $this->brandService->getBrands($perPage);
+
         return response()->json([
-            'message' => 'List of brands',
-            'brands' => $this->brandService->getAllBrands(),
+            'message' => 'Brands list',
+            'brands' => $brands
         ]);
     }
 
@@ -44,7 +47,18 @@ class BrandController extends Controller
      */
     public function show(string $id)
     {
-        //
+        $brand = $this->brandService->getBrand($id);
+
+        if (!$brand) {
+            return response()->json([
+                'message' => 'Brand not found',
+            ], 404);
+        }
+
+        return response()->json([
+            'message' => 'Brand details',
+            'brand' => $brand,
+        ]);
     }
 
     /**

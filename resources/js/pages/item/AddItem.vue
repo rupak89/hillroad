@@ -273,7 +273,7 @@ const getError = (field) => {
                 <div class="select is-fullwidth" :class="{ 'border-red-500': hasError('default_brand_id') }">
                   <select v-model="formData.default_brand_id">
                     <option value="">Select Brand</option>
-                    <option v-for="brand in brands" :key="brand.id" :value="brand.id">
+                    <option v-for="brand in brands.filter(b => b && b.id)" :key="brand.id" :value="brand.id">
                       {{ brand.name }}
                     </option>
                   </select>

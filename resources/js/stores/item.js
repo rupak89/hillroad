@@ -98,8 +98,8 @@ const useItemStore = defineStore("item", {
             this.loading.brands = true
             try {
                 await axios.get('/sanctum/csrf-cookie');
-                const response = await axios.get('/api/brands');
-                this.brands = response.data.brands || [];
+                const response = await axios.get('/api/brands?per_page=100');
+                this.brands = response.data.brands?.data || response.data.brands || [];
                 this.lastFetched.brands = Date.now();
                 return this.brands;
             } catch (error) {

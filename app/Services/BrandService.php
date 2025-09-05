@@ -7,6 +7,19 @@ use App\Models\Brand;
 class BrandService
 {
     /**
+     * Get the list of brands with pagination.
+     *
+     * @param int $perPage
+     * @return \Illuminate\Contracts\Pagination\LengthAwarePaginator
+     */
+    public function getBrands($perPage = 10)
+    {
+        return Brand::withCount('items')
+            ->orderBy('name')
+            ->paginate($perPage);
+    }
+
+    /**
      * Get all brands.
      *
      * @return \Illuminate\Database\Eloquent\Collection
@@ -25,6 +38,17 @@ class BrandService
     public function createBrand(array $data)
     {
         return Brand::create($data);
+    }
+
+    /**
+     * Get a single brand by ID.
+     *
+     * @param int $id
+     * @return \App\Models\Brand|null
+     */
+    public function getBrand(int $id)
+    {
+        return Brand::find($id);
     }
 
     /**

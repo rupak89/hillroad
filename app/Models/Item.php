@@ -32,6 +32,11 @@ class Item extends Model
         return $this->belongsTo(Brand::class, 'default_brand_id');
     }
 
+    public function brand()
+    {
+        return $this->belongsTo(Brand::class, 'default_brand_id');
+    }
+
     public function orderingUnit()
     {
         return $this->belongsTo(Unit::class, 'ordering_unit_id');

@@ -49,6 +49,18 @@
             <span class="menu-item-label">Menu</span>
             </router-link>
         </li>
+        <li class="--set-active-tables-html">
+            <router-link to="/groups">
+            <span class="icon"><i class="mdi mdi-shaker-outline"></i></span>
+            <span class="menu-item-label">Group</span>
+            </router-link>
+        </li>
+        <li class="--set-active-tables-html">
+            <router-link to="/brands">
+            <span class="icon"><i class="mdi mdi-tag-outline"></i></span>
+            <span class="menu-item-label">Brand</span>
+            </router-link>
+        </li>
         </ul>
         <p class="menu-label hidden">Examples</p>
         <ul class="menu-list hidden">

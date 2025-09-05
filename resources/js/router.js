@@ -6,6 +6,10 @@ import Items from './pages/item/Items.vue';
 import AddSupplier from '@/pages/supplier/AddSupplier.vue';
 import AddUnit from '@/pages/unit/AddUnit.vue';
 import Supplier from './pages/supplier/Supplier.vue';
+import Group from './pages/group/Group.vue';
+import AddGroup from '@/pages/group/AddGroup.vue';
+import Brand from './pages/brand/Brand.vue';
+import AddBrand from '@/pages/brand/AddBrand.vue';
 import Recipes from './pages/recipe/Recipes.vue';
 import Addrecipe from './pages/recipe/Addrecipe.vue';
 import Login from './pages/Login.vue';
@@ -33,6 +37,12 @@ const routes = [
             { path: '/suppliers', component: Supplier },
             { path: '/suppliers/add', component: AddSupplier },
             { path: '/suppliers/edit/:id', component: AddSupplier },
+            { path: '/groups', component: Group },
+            { path: '/groups/add', component: AddGroup },
+            { path: '/groups/edit/:id', component: AddGroup },
+            { path: '/brands', component: Brand },
+            { path: '/brands/add', component: AddBrand },
+            { path: '/brands/edit/:id', component: AddBrand },
             { path: '/addunit', component: AddUnit },
             { path: '/404', component: Notfound },
             { path: '/menus', component: Menus },
