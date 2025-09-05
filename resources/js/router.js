@@ -12,6 +12,9 @@ import Login from './pages/Login.vue';
 import DefaultLayout from './components/layouts/DefaultLayout.vue';
 import GuestLayout from './components/layouts/GuestLayout.vue';
 import useUserStore from './stores/user';
+import Menus from './pages/menu/Menus.vue';
+import AddMenu from './pages/menu/AddMenu.vue';
+import PrintableMenu from './pages/menu/PrintableMenu.vue';
 
 
 
@@ -32,6 +35,10 @@ const routes = [
             { path: '/suppliers/edit/:id', component: AddSupplier },
             { path: '/addunit', component: AddUnit },
             { path: '/404', component: Notfound },
+            { path: '/menus', component: Menus },
+            { path: '/menus/add', component: AddMenu },
+            { path: '/menus/edit/:id', component: AddMenu },
+            { path: '/menus/:id/print', component: PrintableMenu },
         ],
         // beforeEnter: (to, from, next) => {
         //     try{

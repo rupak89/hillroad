@@ -44,7 +44,7 @@
             </router-link>
         </li>
         <li class="--set-active-tables-html">
-            <router-link to="/menu">
+            <router-link to="/menus">
             <span class="icon"><i class="mdi mdi-food-fork-drink"></i></span>
             <span class="menu-item-label">Menu</span>
             </router-link>
