@@ -83,6 +83,12 @@ const deleteUnit = async (unitId) => {
 
 <template>
   <section class="section main-section">
+
+    <router-link to="/" class="button is-small">
+      <span class="icon"><i class="mdi mdi-arrow-left"></i></span>
+      <span class="sm:hidden lg:inline">Dashboard</span>
+    </router-link>
+
     <div class="card mb-6">
       <header class="card-header">
         <p class="card-header-title">

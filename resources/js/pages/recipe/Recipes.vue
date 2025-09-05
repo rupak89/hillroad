@@ -159,8 +159,14 @@ const calculateRecipeCost = async (recipeId, index) => {
 <template>
   <section class="section main-section">
 
+    <router-link to="/" class="button is-small">
+      <span class="icon"><i class="mdi mdi-arrow-left"></i></span>
+      <span class="sm:hidden lg:inline">Dashboard</span>
+    </router-link>
+
     <section class="is-hero-bar">
         <div class="flex flex-col md:flex-row items-center justify-between space-y-6 md:space-y-0">
+
             <h1 class="title">
             Recipes
             </h1>
