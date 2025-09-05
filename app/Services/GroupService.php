@@ -13,7 +13,8 @@ class GroupService
      */
     public function getGroups($perPage = 10)
     {
-        return Group::orderBy('name')
+        return Group::withCount('items')
+            ->orderBy('name')
             ->paginate($perPage);
     }
 

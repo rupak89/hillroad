@@ -21,8 +21,15 @@ class GroupRequest extends FormRequest
      */
     public function rules(): array
     {
+        $groupId = $this->route('group'); // Get the group ID from the route
+
         return [
-            'name' => 'required|string|max:255|unique:groups,name',
+            'name' => [
+                'required',
+                'string',
+                'max:255',
+                'unique:groups,name' . ($groupId ? ',' . $groupId : ''),
+            ],
         ];
     }
 }
