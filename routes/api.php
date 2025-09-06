@@ -39,8 +39,8 @@ Route::group(['middleware' => 'auth:sanctum'], function () {
     // Recipe cost calculation routes
     Route::get('/recipes/{id}/cost', [App\Http\Controllers\Api\RecipeController::class, 'calculateCost'])
         ->name('api.recipes.cost');
-    Route::post('/recipes/{id}/cost-per-serving', [App\Http\Controllers\Api\RecipeController::class, 'calculateCostPerServing'])
-        ->name('api.recipes.cost-per-serving');
+    Route::post('/recipes/{id}/cost-for-quantity', [App\Http\Controllers\Api\RecipeController::class, 'calculateCostBasedOnQuantity'])
+        ->name('api.recipes.cost-for-quantity');
     Route::post('/recipes/calculate-multiple-costs', [App\Http\Controllers\Api\RecipeController::class, 'calculateMultipleCosts'])
         ->name('api.recipes.multiple-costs');
 

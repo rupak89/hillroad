@@ -152,7 +152,7 @@ export default {
       this.error = null;
 
       try {
-        const response = await axios.post(`/api/recipes/${this.recipeId}/cost-per-serving`, {
+        const response = await axios.post(`/api/recipes/${this.recipeId}/cost-for-quantity`, {
           quantity: this.quantity
         });
 

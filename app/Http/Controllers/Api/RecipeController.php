@@ -145,7 +145,7 @@ class RecipeController extends Controller
     /**
      * Calculate cost per quantity (servings/units)
      */
-    public function calculateCostPerServing(string $id, Request $request)
+    public function calculateCostBasedOnQuantity(string $id, Request $request)
     {
         try {
             $recipe = $this->recipeService->getRecipe($id);
@@ -164,7 +164,7 @@ class RecipeController extends Controller
                 ], 400);
             }
 
-            $costData = $this->recipeCostService->calculateCostPerServing($recipe, $quantity);
+            $costData = $this->recipeCostService->calculateCostBasedOnQuantity($recipe, $quantity);
 
             return response()->json([
                 'success' => true,

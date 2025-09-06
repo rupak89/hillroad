@@ -46,10 +46,10 @@ class RecipeCostService
                             'can_calculate' => true
                         ];
                     } else {
-                        $error = !$unit ? "Unit not found for ingredient: {$item->item_name}" : 
+                        $error = !$unit ? "Unit not found for ingredient: {$item->item_name}" :
                                          "No price available for ingredient: {$item->item_name}";
                         $errors[] = $error;
-                        
+
                         $itemCosts[] = [
                             'item_id' => $item->id,
                             'item_name' => $item->item_name,
@@ -66,7 +66,7 @@ class RecipeCostService
                 } else {
                     $error = !$unitId ? 'Missing unit' : 'Missing or invalid quantity';
                     $errors[] = "Invalid data for ingredient {$item->item_name}: {$error}";
-                    
+
                     $itemCosts[] = [
                         'item_id' => $item->id,
                         'item_name' => $item->item_name,
@@ -87,7 +87,7 @@ class RecipeCostService
                     'item_id' => $item->id,
                     'error' => $e->getMessage()
                 ]);
-                
+
                 $itemCosts[] = [
                     'item_id' => $item->id,
                     'item_name' => $item->item_name,
@@ -152,7 +152,7 @@ class RecipeCostService
      * @param int $servings
      * @return array
      */
-    public function calculateCostPerServing(Recipe $recipe, $servings = 1)
+    public function calculateCostBasedOnQuantity(Recipe $recipe, $servings = 1)
     {
         $baseCostData = $this->calculateRecipeCost($recipe);
         $baseCost = $baseCostData['total_cost']; // Cost for 1 unit
@@ -177,7 +177,7 @@ class RecipeCostService
     public function calculateMultipleRecipesCost(array $recipeIds)
     {
         $recipes = Recipe::with([
-            'items.orderingUnit', 
+            'items.orderingUnit',
             'items.countingUnit',
             'items' => function($query) {
                 $query->withPivot('unit_id', 'quantity');
