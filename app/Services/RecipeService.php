@@ -292,9 +292,15 @@ class RecipeService
      */
     private function wouldCreateCycle(int $recipeId, array $subRecipeIds): bool
     {
+        $subRecipeIds = array_values(array_unique(array_map('intval', $subRecipeIds)));
+
         // Check for self-reference
-        if (in_array($recipeId, $subRecipeIds)) {
+        if (in_array($recipeId, $subRecipeIds, true)) {
             return true;
+        }
+
+        if ($subRecipeIds === []) {
+            return false;
         }
 
         // Pre-load all recipes with their sub-recipes to avoid N+1
@@ -302,8 +308,9 @@ class RecipeService
         $this->preloadRecipesForCycleCheck($allRecipeIds, $recipeId);
 
         // Check for cycles using depth-first search
-        $visited = [];
+
         foreach ($subRecipeIds as $subRecipeId) {
+            $visited = [];
             if ($this->hasCyclicDependency($subRecipeId, $recipeId, $visited)) {
                 return true;
             }
