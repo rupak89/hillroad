@@ -35,12 +35,24 @@ class RecipeController extends Controller
      */
     public function store(RecipeRequest $request)
     {
-        $recipe = $this->recipeService->createRecipe($request->validated());
+        try {
+            $recipe = $this->recipeService->createRecipe($request->validated());
 
-        return response()->json([
-            'message' => 'Recipe created successfully',
-            'recipe' => $recipe,
-        ]);
+            return response()->json([
+                'message' => 'Recipe created successfully',
+                'recipe' => $recipe,
+            ]);
+        } catch (\InvalidArgumentException $e) {
+            return response()->json([
+                'message' => $e->getMessage(),
+            ], 400);
+        } catch (\Exception $e) {
+            return response()->json([
+                'message' => 'Error creating recipe',
+                'error' => $e->getMessage(),
+            ], 500);
+        }
+
     }
 
     /**
@@ -67,18 +79,30 @@ class RecipeController extends Controller
      */
     public function update(RecipeRequest $request, string $id)
     {
-        $recipe = $this->recipeService->updateRecipe($id, $request->validated());
+        try {
+            $recipe = $this->recipeService->updateRecipe($id, $request->validated());
 
-        if (!$recipe) {
+            if (!$recipe) {
+                return response()->json([
+                    'message' => 'Recipe not found',
+                ], 404);
+            }
+
             return response()->json([
-                'message' => 'Recipe not found',
-            ], 404);
+                'message' => 'Recipe updated successfully',
+                'recipe' => $recipe,
+            ]);
+        } catch (\InvalidArgumentException $e) {
+            return response()->json([
+                'message' => $e->getMessage(),
+            ], 400);
+        } catch (\Exception $e) {
+            return response()->json([
+                'message' => 'Error updating recipe',
+                'error' => $e->getMessage(),
+            ], 500);
         }
 
-        return response()->json([
-            'message' => 'Recipe updated successfully',
-            'recipe' => $recipe,
-        ]);
     }
 
     /**
