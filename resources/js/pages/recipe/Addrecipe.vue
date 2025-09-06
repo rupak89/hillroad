@@ -83,76 +83,17 @@
           <!-- Ingredients (Items) -->
           <div class="field">
             <label class="label">Ingredients</label>
-            <div v-for="(ingredient, index) in recipe.ingredients" :key="'ingredient-' + index" class="ingredient-row mb-3">
-              <div class="ingredient-item">
-                <div class="control">
-                  <Multiselect
-                    v-model="ingredient.item_id"
-                    :options="items"
-                    label="item_name"
-                    value-prop="id"
-                    placeholder="Search and select item..."
-                    :searchable="true"
-                    :clear-on-select="false"
-                    :close-on-select="true"
-                    :can-deselect="true"
-                    :classes="{
-                      container: errors[`ingredients.${index}.item_id`] ? 'multiselect-error' : '',
-                      containerActive: 'is-active'
-                    }"
-                    @change="(value) => onItemChange(index, value)"
-                  />
-                </div>
-                <p v-if="errors[`ingredients.${index}.item_id`]" class="help is-danger is-size-7">
-                  {{ errors[`ingredients.${index}.item_id`][0] }}
-                </p>
-              </div>
-              <div class="ingredient-unit">
-                <div class="control">
-                  <Multiselect
-                    v-model="ingredient.unit_id"
-                    :options="getAvailableUnitsForIngredient(index)"
-                    label="name"
-                    value-prop="id"
-                    placeholder="Search and select unit..."
-                    :searchable="true"
-                    :clear-on-select="false"
-                    :close-on-select="true"
-                    :can-deselect="true"
-                    :classes="{
-                      container: errors[`ingredients.${index}.unit_id`] ? 'multiselect-error' : '',
-                      containerActive: 'is-active'
-                    }"
-                  />
-                </div>
-                <p v-if="errors[`ingredients.${index}.unit_id`]" class="help is-danger is-size-7">
-                  {{ errors[`ingredients.${index}.unit_id`][0] }}
-                </p>
-              </div>
-              <div class="ingredient-quantity">
-                <div class="control">
-                  <input
-                    class="input"
-                    :class="{ 'is-danger': errors[`ingredients.${index}.quantity`] }"
-                    type="number"
-                    step="0.01"
-                    placeholder="Quantity"
-                    v-model="ingredient.quantity">
-                </div>
-                <p v-if="errors[`ingredients.${index}.quantity`]" class="help is-danger is-size-7">
-                  {{ errors[`ingredients.${index}.quantity`][0] }}
-                </p>
-              </div>
-              <div class="ingredient-remove">
-                <button
-                  v-if="recipe.ingredients.length > 1"
-                  class="button is-small is-danger"
-                  type="button"
-                  @click="removeIngredient(index)">
-                  <span class="icon"><i class="mdi mdi-close"></i></span>
-                </button>
-              </div>
-            </div>
+            <RecipeIngredientItem
+              v-for="(ingredient, index) in recipe.ingredients"
+              :key="ingredient.id"
+              :ingredient="ingredient"
+              :index="index"
+              :items="items"
+              :units="availableUnits"
+              :errors="errors"
+              :can-remove="recipe.ingredients.length > 1"
+              @remove="removeIngredient(index)"
+            />
             <button class="button is-small add-button" type="button" @click="addIngredient">
               <span class="icon"><i class="mdi mdi-plus"></i></span>
               <span>Add Ingredient</span>
@@ -164,53 +105,16 @@
           <!-- Sub-Recipes -->
           <div class="field">
             <label class="label">Sub-Recipes</label>
-            <div v-for="(sub, index) in recipe.sub_recipes" :key="'sub-' + index" class="sub-recipe-row mb-3">
-              <div class="sub-recipe-item">
-                <div class="control">
-                  <Multiselect
-                    v-model="sub.child_recipe_id"
-                    :options="availableRecipes"
-                    label="recipe_name"
-                    value-prop="id"
-                    placeholder="Search and select sub-recipe..."
-                    :searchable="true"
-                    :clear-on-select="false"
-                    :close-on-select="true"
-                    :can-deselect="true"
-                    :classes="{
-                      container: errors[`sub_recipes.${index}.child_recipe_id`] ? 'multiselect-error' : '',
-                      containerActive: 'is-active'
-                    }"
-                  />
-                </div>
-                <p v-if="errors[`sub_recipes.${index}.child_recipe_id`]" class="help is-danger is-size-7">
-                  {{ errors[`sub_recipes.${index}.child_recipe_id`][0] }}
-                </p>
-              </div>
-              <div class="sub-recipe-quantity">
-                <div class="control">
-                  <input
-                    class="input"
-                    :class="{ 'is-danger': errors[`sub_recipes.${index}.quantity`] }"
-                    type="number"
-                    step="0.01"
-                    placeholder="Quantity"
-                    v-model="sub.quantity">
-                </div>
-                <p v-if="errors[`sub_recipes.${index}.quantity`]" class="help is-danger is-size-7">
-                  {{ errors[`sub_recipes.${index}.quantity`][0] }}
-                </p>
-              </div>
-              <div class="sub-recipe-remove">
-                <button
-                  v-if="recipe.sub_recipes.length > 1"
-                  class="button is-small is-danger"
-                  type="button"
-                  @click="removeSubRecipe(index)">
-                  <span class="icon"><i class="mdi mdi-close"></i></span>
-                </button>
-              </div>
-            </div>
+            <RecipeSubRecipeItem
+              v-for="(sub, index) in recipe.sub_recipes"
+              :key="sub.id"
+              :sub-recipe="sub"
+              :index="index"
+              :recipes="availableRecipes"
+              :errors="errors"
+              :can-remove="recipe.sub_recipes.length > 1"
+              @remove="removeSubRecipe(index)"
+            />
             <button class="button is-small add-button" type="button" @click="addSubRecipe">
               <span class="icon"><i class="mdi mdi-plus"></i></span>
               <span>Add Sub-Recipe</span>
@@ -250,347 +154,82 @@
   </section>
 </template>
 
-<script>
-import axios from 'axios';
-import { useFlashMessage } from '@/composables/useFlashMessage.js';
-import useItemStore from '@/stores/item.js';
+<script setup>
+import { computed, onMounted } from 'vue';
 import RecipeCostCalculator from '@/components/RecipeCostCalculator.vue';
-import Multiselect from '@vueform/multiselect';
+import RecipeIngredientItem from '@/components/RecipeIngredientItem.vue';
+import RecipeSubRecipeItem from '@/components/RecipeSubRecipeItem.vue';
 
-export default {
-  components: {
-    RecipeCostCalculator,
-    Multiselect
-  },
-  setup() {
-    const { success, error } = useFlashMessage();
-    const itemStore = useItemStore();
-    return { success, error, itemStore };
-  },
-  data() {
-    return {
-      recipe: {
-        recipe_name: '',
-        instruction: '',
-        servings: 1,
-        thumbnail: '',
-        ingredients: [
-          { item_id: '', unit_id: '', quantity: '' }
-        ],
-        sub_recipes: [
-          { child_recipe_id: '', quantity: '' }
-        ]
-      },
-      items: [],
-      recipes: [],
-      errors: {},
-      isSubmitting: false,
-      isLoading: true,
-      recipeId: null,
-    };
-  },
-  computed: {
-    isEditMode() {
-      return this.$route.params.id !== undefined;
-    },
-    availableRecipes() {
-      // Filter out the current recipe from sub-recipes dropdown
-      if (this.isEditMode && this.recipeId) {
-        return this.recipes.filter(recipe => recipe.id != this.recipeId);
-      }
-      return this.recipes;
-    },
-    availableUnits() {
-      return this.itemStore.units || [];
-    },
-    getAvailableUnitsForIngredient() {
-      return (ingredientIndex) => {
-        const ingredient = this.recipe.ingredients[ingredientIndex];
-        if (!ingredient.item_id) {
-          return this.availableUnits;
-        }
+// Composables
+import { useRecipeForm } from '@/composables/useRecipeForm.js';
+import { useRecipeData } from '@/composables/useRecipeData.js';
 
-        // Find the selected item
-        const selectedItem = this.items.find(item => item.id == ingredient.item_id);
-        if (!selectedItem || !selectedItem.counting_unit_id) {
-          return this.availableUnits;
-        }
+// Form management
+const {
+  recipe,
+  errors,
+  isSubmitting,
+  recipeId,
+  isEditMode,
+  submitForm
+} = useRecipeForm();
 
-        // Find the counting unit to get its unit_type_id
-        const countingUnit = this.availableUnits.find(unit => unit.id == selectedItem.counting_unit_id);
-        if (!countingUnit) {
-          return this.availableUnits;
-        }
+// Data loading
+const {
+  items,
+  recipes,
+  isLoading,
+  itemStore,
+  loadData
+} = useRecipeData();
 
-        // Filter units to only show those with the same unit_type_id
-        return this.availableUnits.filter(unit => unit.unit_type_id === countingUnit.unit_type_id);
-      };
-    }
-  },
-  methods: {
-    async fetchDropdownData() {
-      try {
-        const excludeId = this.isEditMode ? this.$route.params.id : null;
-        const url = excludeId ? `/api/recipes-dropdown-data/${excludeId}` : '/api/recipes-dropdown-data';
-        const response = await axios.get(url);
+// Generate unique ID for form items
+const generateId = () => Math.random().toString(36).substr(2, 9);
 
-        this.items = response.data.items;
-        this.recipes = response.data.recipes;
-      } catch (fetchError) {
-        console.error('Error fetching dropdown data:', fetchError);
-        this.error('Loading Error', 'Error loading form data. Please refresh the page.');
-      }
-    },
+// Available units computed
+const availableUnits = computed(() => itemStore.units || []);
 
-    async fetchRecipe() {
-      if (!this.isEditMode) return;
+// Available recipes (filtered to exclude current recipe in edit mode)
+const availableRecipes = computed(() => {
+  if (isEditMode.value && recipeId.value) {
+    return recipes.value.filter(recipe => recipe.id != recipeId.value);
+  }
+  return recipes.value;
+});
 
-      try {
-        const response = await axios.get(`/api/recipes/${this.$route.params.id}`);
-        const recipeData = response.data.recipe;
+// Ingredient management
+const addIngredient = () => {
+  recipe.value.ingredients.push({ id: generateId(), item_id: '', unit_id: '', quantity: '' });
+};
 
-        // Debug logging
-        console.log('Recipe data received:', recipeData);
-        console.log('Sub-recipes data:', recipeData.sub_recipes || recipeData.subRecipes);
-
-        this.recipeId = recipeData.id;
-        this.recipe.recipe_name = recipeData.recipe_name;
-        this.recipe.instruction = recipeData.instruction || '';
-        this.recipe.servings = recipeData.servings || 1;
-        this.recipe.thumbnail = recipeData.thumbnail || '';
-
-        // Populate ingredients
-        if (recipeData.items && recipeData.items.length > 0) {
-          this.recipe.ingredients = recipeData.items.map(item => ({
-            item_id: item.id,
-            unit_id: item.pivot.unit_id,
-            quantity: item.pivot.quantity
-          }));
-        } else {
-          this.recipe.ingredients = [{ item_id: '', unit_id: '', quantity: '' }];
-        }
-
-        // Populate sub-recipes
-        if (recipeData.sub_recipes && recipeData.sub_recipes.length > 0) {
-          this.recipe.sub_recipes = recipeData.sub_recipes.map(subRecipe => ({
-            child_recipe_id: subRecipe.id,
-            quantity: subRecipe.pivot.quantity
-          }));
-        } else if (recipeData.subRecipes && recipeData.subRecipes.length > 0) {
-          this.recipe.sub_recipes = recipeData.subRecipes.map(subRecipe => ({
-            child_recipe_id: subRecipe.id,
-            quantity: subRecipe.pivot.quantity
-          }));
-        } else {
-          this.recipe.sub_recipes = [{ child_recipe_id: '', quantity: '' }];
-        }
-
-      } catch (fetchError) {
-        console.error('Error fetching recipe:', fetchError);
-        this.error('Loading Error', 'Error loading recipe data.');
-        this.$router.push('/recipes');
-      }
-    },
-
-    addIngredient() {
-      this.recipe.ingredients.push({ item_id: '', unit_id: '', quantity: '' });
-    },
-
-    onItemChange(ingredientIndex, itemId) {
-      // Find the selected item
-      const selectedItem = this.items.find(item => item.id == itemId);
-
-      if (selectedItem && selectedItem.counting_unit_id) {
-        // Auto-select the counting unit for this ingredient
-        this.recipe.ingredients[ingredientIndex].unit_id = selectedItem.counting_unit_id;
-      } else {
-        // Clear unit if no counting unit is set
-        this.recipe.ingredients[ingredientIndex].unit_id = '';
-      }
-    },
-
-    removeIngredient(index) {
-      if (this.recipe.ingredients.length > 1) {
-        this.recipe.ingredients.splice(index, 1);
-      }
-    },
-
-    addSubRecipe() {
-      this.recipe.sub_recipes.push({ child_recipe_id: '', quantity: '' });
-    },
-
-    removeSubRecipe(index) {
-      if (this.recipe.sub_recipes.length > 1) {
-        this.recipe.sub_recipes.splice(index, 1);
-      }
-    },
-
-    resetForm() {
-      this.recipe = {
-        recipe_name: '',
-        instruction: '',
-        servings: 1,
-        thumbnail: '',
-        ingredients: [{ item_id: '', unit_id: '', quantity: '' }],
-        sub_recipes: [{ child_recipe_id: '', quantity: '' }]
-      };
-      this.errors = {};
-    },
-
-    cleanFormData() {
-      // Remove empty ingredients
-      this.recipe.ingredients = this.recipe.ingredients.filter(ingredient =>
-        ingredient.item_id && ingredient.unit_id && ingredient.quantity
-      );
-
-      // Remove empty sub-recipes
-      this.recipe.sub_recipes = this.recipe.sub_recipes.filter(subRecipe =>
-        subRecipe.child_recipe_id && subRecipe.quantity
-      );
-    },
-
-    validateRecipe() {
-      // Check if there's at least one ingredient or one sub-recipe
-      const hasIngredients = this.recipe.ingredients.some(ingredient =>
-        ingredient.item_id && ingredient.unit_id && ingredient.quantity
-      );
-
-      const hasSubRecipes = this.recipe.sub_recipes.some(subRecipe =>
-        subRecipe.child_recipe_id && subRecipe.quantity
-      );
-
-      if (!hasIngredients && !hasSubRecipes) {
-        return {
-          isValid: false,
-          message: 'A recipe must have at least one ingredient or one sub-recipe.'
-        };
-      }
-
-      return { isValid: true };
-    },
-
-    async submitForm() {
-      this.errors = {};
-      this.isSubmitting = true;
-
-      try {
-        // Validate the recipe first
-        const validation = this.validateRecipe();
-        if (!validation.isValid) {
-          this.error('Validation Error', validation.message);
-          return;
-        }
-
-        // Clean the form data before submitting
-        this.cleanFormData();
-
-        let response;
-        if (this.isEditMode) {
-          response = await axios.put(`/api/recipes/${this.$route.params.id}`, this.recipe);
-        } else {
-          response = await axios.post('/api/recipes', this.recipe);
-        }
-
-        const action = this.isEditMode ? 'updated' : 'created';
-        const recipeName = response.data.recipe.recipe_name;
-
-        this.success(
-          `Recipe ${action === 'created' ? 'Created' : 'Updated'}`,
-          `"${recipeName}" has been ${action} successfully!`
-        );
-
-        // Redirect to recipes list with success message
-        this.$router.push({
-          path: '/recipes',
-          query: {
-            success: action,
-            recipe: recipeName
-          }
-        });
-
-      } catch (submitError) {
-        console.error('Error submitting form:', submitError);
-
-        if (submitError.response && submitError.response.status === 422) {
-          // Validation errors
-          this.errors = submitError.response.data.errors || {};
-        } else {
-          // Other errors
-          this.error(
-            'Submit Failed',
-            `Error ${this.isEditMode ? 'updating' : 'creating'} recipe. Please try again.`
-          );
-        }
-      } finally {
-        this.isSubmitting = false;
-      }
-    }
-  },
-
-  async mounted() {
-    this.isLoading = true;
-    try {
-      // Fetch units from store and dropdown data in parallel
-      await Promise.all([
-        this.itemStore.fetchUnits(),
-        this.fetchDropdownData()
-      ]);
-
-      if (this.isEditMode) {
-        await this.fetchRecipe();
-      }
-    } catch (error) {
-      console.error('Error loading data:', error);
-      this.error('Loading Error', 'Error loading form data. Please refresh the page.');
-    } finally {
-      this.isLoading = false;
-    }
+const removeIngredient = (index) => {
+  if (recipe.value.ingredients.length > 1) {
+    recipe.value.ingredients.splice(index, 1);
   }
 };
+
+// Sub-recipe management
+const addSubRecipe = () => {
+  recipe.value.sub_recipes.push({ id: generateId(), child_recipe_id: '', quantity: '' });
+};
+
+const removeSubRecipe = (index) => {
+  if (recipe.value.sub_recipes.length > 1) {
+    recipe.value.sub_recipes.splice(index, 1);
+  }
+};
+
+// Initialize data on component mount
+onMounted(async () => {
+  try {
+    await loadData(recipe, recipeId);
+  } catch (error) {
+    console.error('Failed to load component data:', error);
+  }
+});
 </script>
 
 <style scoped>
-.ingredient-row {
-  display: grid;
-  grid-template-columns: 2fr 1fr 1fr auto;
-  gap: 1rem;
-  align-items: start;
-}
-
-.ingredient-item,
-.ingredient-unit,
-.ingredient-quantity,
-.ingredient-remove {
-  display: flex;
-  flex-direction: column;
-}
-
-.ingredient-remove {
-  align-items: center;
-  justify-content: flex-start;
-  padding-top: 0.375rem; /* Align with input height */
-}
-
-.sub-recipe-row {
-  display: grid;
-  grid-template-columns: 2fr 1fr auto;
-  gap: 1rem;
-  align-items: start;
-}
-
-.sub-recipe-item,
-.sub-recipe-quantity,
-.sub-recipe-remove {
-  display: flex;
-  flex-direction: column;
-}
-
-.sub-recipe-remove {
-  align-items: center;
-  justify-content: flex-start;
-  padding-top: 0.375rem; /* Align with input height */
-}
-
 .add-button {
   background-color: #abf6ab !important; /* Light green */
   border-color: #90ee90 !important;
@@ -600,100 +239,5 @@ export default {
 .add-button:hover {
   background-color: #7dd87d !important; /* Slightly darker green on hover */
   border-color: #7dd87d !important;
-}
-
-/* Responsive design for smaller screens */
-@media (max-width: 768px) {
-  .ingredient-row {
-    grid-template-columns: 1fr;
-    gap: 0.5rem;
-  }
-
-  .ingredient-remove {
-    justify-self: end;
-    padding-top: 0;
-  }
-
-  .sub-recipe-row {
-    grid-template-columns: 1fr;
-    gap: 0.5rem;
-  }
-
-  .sub-recipe-remove {
-    justify-self: end;
-    padding-top: 0;
-  }
-}
-
-/* Multiselect styling to match Bulma theme */
-:deep(.multiselect) {
-  min-height: 2.5rem;
-  border-radius: 4px;
-  border: 1px solid #dbdbdb;
-  background: white;
-}
-
-:deep(.multiselect.is-active) {
-  border-color: #3273dc;
-  box-shadow: 0 0 0 0.125em rgba(50, 115, 220, 0.25);
-}
-
-:deep(.multiselect-error) {
-  border-color: #ff3860 !important;
-}
-
-:deep(.multiselect-error.is-active) {
-  box-shadow: 0 0 0 0.125em rgba(255, 56, 96, 0.25) !important;
-}
-
-:deep(.multiselect-wrapper) {
-  position: relative;
-}
-
-:deep(.multiselect-input) {
-  border: none;
-  outline: none;
-  background: transparent;
-  padding: 0.5rem 0.75rem;
-  font-size: 1rem;
-}
-
-:deep(.multiselect-single-label) {
-  padding: 0.5rem 0.75rem;
-  font-size: 1rem;
-  line-height: 1.5;
-}
-
-:deep(.multiselect-placeholder) {
-  padding: 0.5rem 0.75rem;
-  color: #b5b5b5;
-  font-size: 1rem;
-}
-
-:deep(.multiselect-dropdown) {
-  border: 1px solid #dbdbdb;
-  border-top: none;
-  border-radius: 0 0 4px 4px;
-  max-height: 200px;
-  background: white;
-}
-
-:deep(.multiselect-option) {
-  padding: 0.5rem 0.75rem;
-  font-size: 1rem;
-  cursor: pointer;
-}
-
-:deep(.multiselect-option:hover) {
-  background: #f5f5f5;
-}
-
-:deep(.multiselect-option.is-selected) {
-  background: #3273dc;
-  color: white;
-}
-
-:deep(.multiselect-option.is-highlighted) {
-  background: #f5f5f5;
 }
 </style>
