@@ -2,10 +2,12 @@
 
 namespace App\Models;
 
+use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 
 class Unit extends Model
 {
+    use HasFactory;
 
     protected $fillable = [
         'name',
@@ -46,8 +48,8 @@ class Unit extends Model
 
         // If different unit types, check if they have the same physical_type
         if ($this->unit_type_id !== $targetUnit->unit_type_id) {
-            if (!$this->unitType->physical_type || 
-                !$targetUnit->unitType->physical_type || 
+            if (!$this->unitType->physical_type ||
+                !$targetUnit->unitType->physical_type ||
                 $this->unitType->physical_type !== $targetUnit->unitType->physical_type) {
                 throw new \Exception("Cannot convert between different unit types: {$this->unitType->label} and {$targetUnit->unitType->label}");
             }
@@ -59,13 +61,13 @@ class Unit extends Model
                 // Map unit names to PHPUnitsOfMeasure compatible names
                 $sourceUnitName = $this->getPhysicalUnitName();
                 $targetUnitName = $targetUnit->getPhysicalUnitName();
-                
+
                 // Convert quantity to actual physical amount first (accounting for ratios)
                 $actualSourceAmount = $quantity * $this->ratio;
-                
+
                 $physicalQuantity = $this->unitType->getPhysicalQuantityInstance($actualSourceAmount, $sourceUnitName);
                 $actualTargetAmount = $physicalQuantity->toUnit($targetUnitName);
-                
+
                 // Convert back to target unit's ratio
                 return $actualTargetAmount / $targetUnit->ratio;
             } catch (\Exception $e) {
@@ -73,13 +75,13 @@ class Unit extends Model
                 try {
                     $sourceUnitName = $this->getPhysicalUnitName();
                     $targetUnitName = $targetUnit->getPhysicalUnitName();
-                    
+
                     // Convert quantity to actual physical amount first (accounting for ratios)
                     $actualSourceAmount = $quantity * $this->ratio;
-                    
+
                     $physicalQuantity = $targetUnit->unitType->getPhysicalQuantityInstance($actualSourceAmount, $sourceUnitName);
                     $actualTargetAmount = $physicalQuantity->toUnit($targetUnitName);
-                    
+
                     // Convert back to target unit's ratio
                     return $actualTargetAmount / $targetUnit->ratio;
                 } catch (\Exception $e2) {
@@ -98,7 +100,7 @@ class Unit extends Model
     {
         // Ensure unitType is loaded
         $this->load('unitType');
-        
+
         // Use the base_unit from the unitType, which is already PHPUnitsOfMeasure compatible
         return $this->unitType->base_unit;
     }
@@ -134,9 +136,9 @@ class Unit extends Model
         // Different unit types can convert if they have the same physical_type
         $this->load('unitType');
         $targetUnit->load('unitType');
-        
-        return $this->unitType->physical_type && 
-               $targetUnit->unitType->physical_type && 
+
+        return $this->unitType->physical_type &&
+               $targetUnit->unitType->physical_type &&
                $this->unitType->physical_type === $targetUnit->unitType->physical_type;
     }
 }

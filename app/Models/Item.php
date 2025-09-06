@@ -2,11 +2,13 @@
 
 namespace App\Models;
 
+use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Support\Facades\Log;
 
 class Item extends Model
 {
+    use HasFactory;
     protected $fillable = [
         'item_name',
         'ordering_unit_id',

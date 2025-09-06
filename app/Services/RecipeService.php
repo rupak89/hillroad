@@ -329,9 +329,7 @@ class RecipeService
             $newIds = $allIds->diff($processedIds);
             $processedIds = $processedIds->merge($newIds);
 
-            $recipes = Recipe::whereIn('id', $newIds->toArray())
-                ->with('subRecipes:id')
-                ->get(['id']);
+            $recipes = $this->fetchRecipesWithChildren($newIds->toArray(), ['id']);
 
             $subRecipeIds = $recipes->flatMap(function ($recipe) {
                 return $recipe->subRecipes->pluck('id');
@@ -346,12 +344,9 @@ class RecipeService
         }
 
         // Now load all recipes with their sub-recipes in one query
-        Recipe::whereIn('id', $processedIds->toArray())
-            ->with('subRecipes:id')
-            ->get()
+        $this->fetchRecipesWithChildren($processedIds->toArray())
             ->keyBy('id')
             ->each(function ($recipe) {
-                // Cache the recipe in memory for the cycle check
                 $this->recipeCache[$recipe->id] = $recipe;
             });
     }
@@ -424,5 +419,17 @@ class RecipeService
     private function clearRecipeCache(): void
     {
         $this->recipeCache = [];
+    }
+
+    /**
+     * Fetching recipes
+     * @param array<int> $ids
+     * @param array<string> $columns
+     */
+    protected function fetchRecipesWithChildren(array $ids, array $columns = ['id']): Collection
+    {
+        return Recipe::whereIn('id', $ids)
+            ->with('subRecipes:id')
+            ->get($columns);
     }
 }
