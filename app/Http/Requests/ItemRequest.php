@@ -30,7 +30,7 @@ class ItemRequest extends FormRequest
             'default_supplier_id' => 'nullable|exists:suppliers,id',
             'default_brand_id' => 'nullable|exists:brands,id',
             'group_id' => 'nullable|exists:groups,id',
-            'latest_price' => 'required|numeric|min:0',
+            'latest_price' => 'required|decimal:0,2|min:0',
         ];
     }
 }

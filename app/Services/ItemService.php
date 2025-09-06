@@ -4,6 +4,12 @@ namespace App\Services;
 
 use App\Models\Item;
 use App\Http\Resources\ItemResource;
+use App\DTOs\CreateItemDTO;
+use App\DTOs\UpdateItemDTO;
+use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Log;
+use Illuminate\Contracts\Pagination\LengthAwarePaginator;
+use Illuminate\Database\Eloquent\ModelNotFoundException;
 
 class ItemService
 {
@@ -11,9 +17,9 @@ class ItemService
      * Get the list of items with pagination.
      *
      * @param int $perPage
-     * @return \Illuminate\Contracts\Pagination\LengthAwarePaginator
+     * @return LengthAwarePaginator
      */
-    public function getItems($perPage = 10)
+    public function getItems(int $perPage = 10): LengthAwarePaginator
     {
         return Item::with(['supplier', 'defaultBrand', 'group', 'orderingUnit', 'countingUnit'])
             ->orderBy('item_name')
@@ -23,13 +29,25 @@ class ItemService
     /**
      * Create a new item.
      *
-     * @param array $data { name: string, orderring_unit_id: int, counting_unit_id: int,
-     * defaul_supplier_id: ?int, defalut_brand_id: ?int, group_id: ?int, latest_price: float }
+     * @param array $data
      * @return Item
+     * @throws \Illuminate\Validation\ValidationException
+     * @throws \Exception
      */
     public function createItem(array $data): Item
     {
-        return Item::create($data);
+        try {
+            return DB::transaction(function () use ($data) {
+                $dto = CreateItemDTO::fromArray($data);
+                return Item::create($dto->toArray());
+            });
+        } catch (\Exception $e) {
+            Log::error('Error creating item: ' . $e->getMessage(), [
+                'data' => $data,
+                'exception' => $e
+            ]);
+            throw $e;
+        }
     }
 
     /**
@@ -38,35 +56,74 @@ class ItemService
      * @param int $id
      * @param array $data
      * @return Item
+     * @throws \Illuminate\Validation\ValidationException
+     * @throws ModelNotFoundException
+     * @throws \Exception
      */
     public function updateItem(int $id, array $data): Item
     {
-        return Item::updateOrCreate(['id' => $id], $data);
+        try {
+            return DB::transaction(function () use ($id, $data) {
+                $dto = UpdateItemDTO::fromArray($data);
+                $item = Item::findOrFail($id);
+                $item->update($dto->toArray());
+                return $item->fresh();
+            });
+        } catch (ModelNotFoundException $e) {
+            Log::error('Item not found for update: ' . $id);
+            throw $e;
+        } catch (\Exception $e) {
+            Log::error('Error updating item: ' . $e->getMessage(), [
+                'id' => $id,
+                'data' => $data,
+                'exception' => $e
+            ]);
+            throw $e;
+        }
     }
 
     /**
      * Delete an item.
      *
      * @param int $id
-     * @return bool|null
+     * @return bool
+     * @throws ModelNotFoundException
+     * @throws \Exception
      */
-    public function deleteItem(string $id): ?bool
+    public function deleteItem(int $id): bool
     {
-        $item = Item::find($id);
-        if ($item) {
-            return $item->delete();
+        try {
+            return DB::transaction(function () use ($id) {
+                $item = Item::findOrFail($id);
+                return $item->delete();
+            });
+        } catch (ModelNotFoundException $e) {
+            Log::error('Item not found for deletion: ' . $id);
+            throw $e;
+        } catch (\Exception $e) {
+            Log::error('Error deleting item: ' . $e->getMessage(), [
+                'id' => $id,
+                'exception' => $e
+            ]);
+            throw $e;
         }
-        return null;
     }
 
     /**
      * Get a single item by ID.
      *
      * @param int $id
-     * @return Item|null
+     * @return Item
+     * @throws ModelNotFoundException
      */
-    public function getItem(int $id): ?Item
+    public function getItem(int $id): Item
     {
-        return Item::with(['supplier', 'defaultBrand', 'group'])->find($id);
+        try {
+            return Item::with(['supplier', 'defaultBrand', 'group', 'orderingUnit', 'countingUnit'])
+                ->findOrFail($id);
+        } catch (ModelNotFoundException $e) {
+            Log::error('Item not found: ' . $id);
+            throw $e;
+        }
     }
 }
