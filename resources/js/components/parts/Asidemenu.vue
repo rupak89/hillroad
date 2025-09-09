@@ -51,7 +51,7 @@
         </li>
         <li class="--set-active-tables-html">
             <router-link to="/groups">
-            <span class="icon"><i class="mdi mdi-shaker-outline"></i></span>
+            <span class="icon"><i class="mdi mdi-account-group"></i></span>
             <span class="menu-item-label">Group</span>
             </router-link>
         </li>

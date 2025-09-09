@@ -13,7 +13,7 @@ import { onMounted } from 'vue';
                 <h1 class="title">
                 Dashboard
                 </h1>
-                <button class="button light">Button</button>
+
             </div>
         </section>
 
@@ -24,86 +24,105 @@ import { onMounted } from 'vue';
                         <div class="card-content">
                         <div class="flex items-center justify-between">
                             <div class="widget-label">
+                                <h1>Recipe</h1>
+                                <!-- <h3>Recipe</h3>
 
-                                <h3>Recipe</h3>
-
-                            <h1>
-                                512
-                            </h1>
+                                <h1>
+                                    512
+                                </h1> -->
                             </div>
-                            <span class="icon widget-icon text-green-500"><i class="mdi mdi-account-multiple mdi-48px"></i></span>
+                            <span class="icon widget-icon text-green-500"><i class="mdi mdi-chef-hat mdi-48px"></i></span>
                         </div>
                         </div>
                     </div>
-            </router-link>
+                </router-link>
 
-            <router-link to="/items">
-            <div class="card">
-                <div class="card-content">
-                <div class="flex items-center justify-between">
-                    <div class="widget-label">
+                <router-link to="/menus">
+                    <div class="card">
+                        <div class="card-content">
+                        <div class="flex items-center justify-between">
+                            <div class="widget-label">
 
-                    <h3>
-                        Items
-                    </h3>
-
-                    <h1>
-                        770
-                    </h1>
+                                <h1>Menu</h1>
+                            </div>
+                            <span class="icon widget-icon text-red-500"><i class="mdi mdi-food-fork-drink mdi-48px"></i></span>
+                        </div>
+                        </div>
                     </div>
-                    <span class="icon widget-icon text-blue-500"><i class="mdi mdi-cart-outline mdi-48px"></i></span>
-                </div>
-                </div>
-            </div>
-            </router-link>
+                </router-link>
 
-            <router-link to="/menus">
-            <div class="card">
-                <div class="card-content">
-                <div class="flex items-center justify-between">
-                    <div class="widget-label">
+                <router-link to="/items">
+                    <div class="card">
+                        <div class="card-content">
+                        <div class="flex items-center justify-between">
+                            <div class="widget-label">
+                            <h1>
+                                Items
+                                </h1>
+                            </div>
+                            <span class="icon widget-icon text-blue-500"><i class="mdi mdi-shaker-outline mdi-48px"></i></span>
+                        </div>
+                        </div>
+                    </div>
+                </router-link>
 
-                        <h3>
-                        Menu
-                        </h3>
 
-                    <h1>
-                        25
-                    </h1>
+
+                <router-link to="/suppliers">
+                    <div class="card">
+                        <div class="card-content">
+                        <div class="flex items-center justify-between">
+                            <div class="widget-label">
+
+                                <h1>Supplier</h1>
+                            </div>
+                            <span class="icon widget-icon text-red-500"><i class="mdi mdi-domain mdi-48px"></i></span>
+                        </div>
+                        </div>
                     </div>
-                    <span class="icon widget-icon text-red-500"><i class="mdi mdi-finance mdi-48px"></i></span>
-                </div>
-                </div>
-            </div>
-            </router-link>
+                </router-link>
+
+                <router-link to="/groups">
+                    <div class="card">
+                        <div class="card-content">
+                            <div class="flex items-center justify-between">
+                                <div class="widget-label">
+                                    <h1>Groups</h1>
+                                </div>
+                                <span class="icon widget-icon text-purple-500"><i class="mdi mdi-account-group mdi-48px"></i></span>
+                            </div>
+                        </div>
+                    </div>
+                </router-link>
+
+                <router-link to="/addunit">
+                    <div class="card">
+                        <div class="card-content">
+                            <div class="flex items-center justify-between">
+                                <div class="widget-label">
+                                    <h1>Stock Units</h1>
+                                </div>
+                                <span class="icon widget-icon text-orange-500"><i class="mdi mdi-tape-measure mdi-48px"></i></span>
+                            </div>
+                        </div>
+                    </div>
+                </router-link>
+
+                <router-link to="/brands">
+                    <div class="card">
+                        <div class="card-content">
+                            <div class="flex items-center justify-between">
+                                <div class="widget-label">
+                                    <h1>Brands</h1>
+                                </div>
+                                <span class="icon widget-icon text-teal-500"><i class="mdi mdi-tag mdi-48px"></i></span>
+                            </div>
+                        </div>
+                    </div>
+                </router-link>
+
             </div>
 
-            <div class="card mb-6">
-            <header class="card-header">
-                <p class="card-header-title">
-                <span class="icon"><i class="mdi mdi-finance"></i></span>
-                Performance
-                </p>
-                <a href="#" class="card-header-icon">
-                <span class="icon"><i class="mdi mdi-reload"></i></span>
-                </a>
-            </header>
-            <div class="card-content">
-                <div class="chart-area">
-                <div class="h-full">
-                    <div class="chartjs-size-monitor">
-                    <div class="chartjs-size-monitor-expand">
-                        <div></div>
-                    </div>
-                    <div class="chartjs-size-monitor-shrink">
-                        <div></div>
-                    </div>
-                    </div>
-                    <canvas id="big-line-chart" width="2992" height="1000" class="chartjs-render-monitor block" style="height: 400px; width: 1197px;"></canvas>
-                </div>
-                </div>
-            </div>
-            </div>
 
 
         </section>
