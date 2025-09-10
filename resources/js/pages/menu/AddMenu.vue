@@ -110,7 +110,7 @@
                   </div>
                   <div class="control">
                     <span class="button is-static">
-                      ${{ getSegmentCost(segment).toFixed(2) }} per guest
+                      ${{ (memoizedSegmentCosts[segmentIndex] || 0).toFixed(2) }} per guest
                     </span>
                     <button
                       v-if="menu.segments.length > 1"
@@ -248,12 +248,12 @@
                       </td>
                       <td class="has-text-right">
                         <span class="tag is-light is-medium">
-                          ${{ getTotalCost().toFixed(2) }}
+                          ${{ memoizedTotalCost.toFixed(2) }}
                         </span>
                       </td>
                       <td class="has-text-right">
                         <span class="tag is-light is-medium">
-                          ${{ (getTotalCost() * menu.target_head_count).toFixed(2) }}
+                          ${{ (memoizedTotalCost * menu.target_head_count).toFixed(2) }}
                         </span>
                       </td>
                     </tr>
@@ -266,12 +266,12 @@
                       </td>
                       <td class="has-text-right">
                         <span class="tag is-warning is-medium">
-                          +${{ getMarkupAmount().toFixed(2) }}
+                          +${{ memoizedMarkupAmount.toFixed(2) }}
                         </span>
                       </td>
                       <td class="has-text-right">
                         <span class="tag is-warning is-medium">
-                          +${{ (getMarkupAmount() * menu.target_head_count).toFixed(2) }}
+                          +${{ (memoizedMarkupAmount * menu.target_head_count).toFixed(2) }}
                         </span>
                       </td>
                     </tr>
@@ -284,12 +284,12 @@
                       </td>
                       <td class="has-text-right">
                         <span class="tag is-primary is-medium">
-                          <strong>${{ getSellingPricePerPerson().toFixed(2) }}</strong>
+                          <strong>${{ memoizedSellingPricePerPerson.toFixed(2) }}</strong>
                         </span>
                       </td>
                       <td class="has-text-right">
                         <span class="tag is-success is-medium">
-                          <strong>${{ (getSellingPricePerPerson() * menu.target_head_count).toFixed(2) }}</strong>
+                          <strong>${{ (memoizedSellingPricePerPerson * menu.target_head_count).toFixed(2) }}</strong>
                         </span>
                       </td>
                     </tr>
@@ -318,7 +318,7 @@
                     <div class="has-text-right">
                       <p class="heading">Revenue Potential</p>
                       <p class="title is-5 has-text-success">
-                        ${{ (getSellingPricePerPerson() * menu.target_head_count).toFixed(2) }}
+                        ${{ (memoizedSellingPricePerPerson * menu.target_head_count).toFixed(2) }}
                       </p>
                     </div>
                   </div>
@@ -418,6 +418,30 @@ export default {
   computed: {
     isEditMode() {
       return this.$route.params.id !== undefined;
+    },
+
+    // Memoized costs to prevent recursive updates
+    memoizedSegmentCosts() {
+      const costs = {};
+      this.menu.segments.forEach((segment, index) => {
+        costs[index] = this.calculateSegmentCost(segment);
+      });
+      return costs;
+    },
+
+    memoizedTotalCost() {
+      return Object.values(this.memoizedSegmentCosts).reduce((total, cost) => total + cost, 0);
+    },
+
+    memoizedMarkupAmount() {
+      if (this.menu.markup_percentage > 0) {
+        return this.memoizedTotalCost * (this.menu.markup_percentage / 100);
+      }
+      return 0;
+    },
+
+    memoizedSellingPricePerPerson() {
+      return this.memoizedTotalCost + this.memoizedMarkupAmount;
     }
   },
   watch: {
@@ -486,13 +510,17 @@ export default {
         const response = await axios.get(`/api/recipes/${recipeId}/cost`);
 
         if (response.data.success) {
-          // Store the cost for this recipe
-          this.recipeCosts[recipeId] = response.data.cost_data.total_cost || 0;
+          // Batch update to prevent multiple reactive triggers
+          const newCosts = { ...this.recipeCosts };
+          newCosts[recipeId] = response.data.cost_data.total_cost || 0;
+          this.recipeCosts = newCosts;
         }
       } catch (error) {
         console.error(`Error fetching cost for recipe ${recipeId}:`, error);
         // Set cost to 0 if there's an error
-        this.recipeCosts[recipeId] = 0;
+        const newCosts = { ...this.recipeCosts };
+        newCosts[recipeId] = 0;
+        this.recipeCosts = newCosts;
       } finally {
         // Remove from loading set
         this.loadingCosts.delete(recipeId);
@@ -617,60 +645,81 @@ export default {
       // since the same recipe might be used elsewhere in the menu
     },
 
-    async onRecipeChange(segmentIndex, itemIndex, recipeId) {
-      // Optional: Auto-set quantity based on recipe servings or other logic
-      const selectedRecipe = this.recipes.find(recipe => recipe.id == recipeId);
-      if (selectedRecipe) {
-        // Could implement logic to suggest quantity based on recipe servings
-      }
+    onRecipeChange(segmentIndex, itemIndex, recipeId) {
+      // Use setTimeout to avoid reactive update loops during Multiselect events
+      setTimeout(() => {
+        // Optional: Auto-set quantity based on recipe servings or other logic
+        const selectedRecipe = this.recipes.find(recipe => recipe.id == recipeId);
+        if (selectedRecipe) {
+          // Could implement logic to suggest quantity based on recipe servings
+        }
 
-      // Fetch cost for the selected recipe immediately
-      if (recipeId) {
-        await this.fetchSingleRecipeCost(recipeId);
-      }
+        // Fetch cost for the selected recipe
+        if (recipeId) {
+          this.fetchSingleRecipeCost(recipeId);
+        }
+      }, 0);
     },
 
     getRecipeCost(recipeId) {
       if (!recipeId) return 0;
 
-      // If we don't have the cost yet, trigger a fetch
-      if (this.recipeCosts[recipeId] === undefined) {
-        this.fetchSingleRecipeCost(recipeId);
-        return 0; // Return 0 while loading
+      // Return existing cost if available
+      if (this.recipeCosts[recipeId] !== undefined) {
+        return this.recipeCosts[recipeId] || 0;
       }
 
-      return this.recipeCosts[recipeId] || 0;
+      // Schedule fetch for next tick to avoid recursive updates
+      if (!this.loadingCosts.has(recipeId)) {
+        this.$nextTick(() => {
+          if (!this.loadingCosts.has(recipeId) && this.recipeCosts[recipeId] === undefined) {
+            this.fetchSingleRecipeCost(recipeId);
+          }
+        });
+      }
+
+      return 0; // Return 0 while loading
     },
 
-    getItemCost(item) {
+    calculateItemCost(item) {
       if (!item.recipe_id || !item.quantity) return 0;
 
-      const recipeCost = this.getRecipeCost(item.recipe_id);
-      // Always calculate per guest pricing
+      const recipeCost = this.recipeCosts[item.recipe_id] || 0;
       return recipeCost * item.quantity;
     },
 
-    getSegmentCost(segment) {
+    calculateSegmentCost(segment) {
+      if (!segment.items) return 0;
+
       return segment.items.reduce((total, item) => {
-        return total + this.getItemCost(item);
+        return total + this.calculateItemCost(item);
       }, 0);
+    },
+
+    // Legacy methods for template compatibility (now use computed properties)
+    getItemCost(item) {
+      return this.calculateItemCost(item);
+    },
+
+    getSegmentCost(segment) {
+      // Use index-based lookup from computed property if available
+      const segmentIndex = this.menu.segments.indexOf(segment);
+      if (segmentIndex !== -1 && this.memoizedSegmentCosts[segmentIndex] !== undefined) {
+        return this.memoizedSegmentCosts[segmentIndex];
+      }
+      return this.calculateSegmentCost(segment);
     },
 
     getTotalCost() {
-      return this.menu.segments.reduce((total, segment) => {
-        return total + this.getSegmentCost(segment);
-      }, 0);
+      return this.memoizedTotalCost;
     },
 
     getMarkupAmount() {
-      if (this.menu.markup_percentage > 0) {
-        return this.getTotalCost() * (this.menu.markup_percentage / 100);
-      }
-      return 0;
+      return this.memoizedMarkupAmount;
     },
 
     getSellingPricePerPerson() {
-      return this.getTotalCost() + this.getMarkupAmount();
+      return this.memoizedSellingPricePerPerson;
     },
 
     cleanFormData() {
