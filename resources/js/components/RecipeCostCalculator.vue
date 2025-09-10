@@ -115,71 +115,70 @@
   </div>
 </template>
 
-<script>
-import axios from 'axios';
+<script setup>
+import { ref, watch, onMounted, onBeforeUnmount } from 'vue'
+import axios from 'axios'
 
-export default {
-  name: 'RecipeCostCalculator',
-  props: {
-    recipeId: {
-      type: [String, Number],
-      required: true
-    }
-  },
-  data() {
-    return {
-      quantity: 1,
-      costData: null,
-      isCalculating: false,
-      error: null,
-      debounceTimer: null
-    };
-  },
-  watch: {
-    quantity(newValue, oldValue) {
-      if (newValue !== oldValue && newValue > 0) {
-        // Debounce the calculation to avoid too many API calls
-        clearTimeout(this.debounceTimer);
-        this.debounceTimer = setTimeout(() => {
-          this.calculateCost();
-        }, 500);
-      }
-    }
-  },
-  methods: {
-    async calculateCost() {
-      this.isCalculating = true;
-      this.error = null;
-
-      try {
-        const response = await axios.post(`/api/recipes/${this.recipeId}/cost-for-quantity`, {
-          quantity: this.quantity
-        });
-
-        if (response.data.success) {
-          this.costData = response.data.cost_data;
-        } else {
-          this.error = response.data.message || 'Failed to calculate cost';
-        }
-      } catch (error) {
-        console.error('Error calculating cost:', error);
-        this.error = error.response?.data?.message || 'Error calculating cost. Please try again.';
-      } finally {
-        this.isCalculating = false;
-      }
-    }
-  },
-  mounted() {
-    // Auto-calculate cost when component is mounted
-    this.calculateCost();
-  },
-  beforeUnmount() {
-    // Clear the debounce timer when component is destroyed
-    if (this.debounceTimer) {
-      clearTimeout(this.debounceTimer);
-    }
+const props = defineProps({
+  recipeId: {
+    type: [String, Number],
+    required: true
   }
-};
+})
+
+// Data
+const quantity = ref(1)
+const costData = ref(null)
+const isCalculating = ref(false)
+const error = ref(null)
+const debounceTimer = ref(null)
+
+// Methods
+const calculateCost = async () => {
+  isCalculating.value = true
+  error.value = null
+
+  try {
+    const response = await axios.post(`/api/recipes/${props.recipeId}/cost-for-quantity`, {
+      quantity: quantity.value
+    })
+
+    if (response.data.success) {
+      costData.value = response.data.cost_data
+    } else {
+      error.value = response.data.message || 'Failed to calculate cost'
+    }
+  } catch (calcError) {
+    console.error('Error calculating cost:', calcError)
+    error.value = calcError.response?.data?.message || 'Error calculating cost. Please try again.'
+  } finally {
+    isCalculating.value = false
+  }
+}
+
+// Watchers
+watch(quantity, (newValue, oldValue) => {
+  if (newValue !== oldValue && newValue > 0) {
+    // Debounce the calculation to avoid too many API calls
+    clearTimeout(debounceTimer.value)
+    debounceTimer.value = setTimeout(() => {
+      calculateCost()
+    }, 500)
+  }
+})
+
+// Component lifecycle
+onMounted(() => {
+  // Auto-calculate cost when component is mounted
+  calculateCost()
+})
+
+onBeforeUnmount(() => {
+  // Clear the debounce timer when component is destroyed
+  if (debounceTimer.value) {
+    clearTimeout(debounceTimer.value)
+  }
+})
 </script>
 
 <style scoped>

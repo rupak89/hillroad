@@ -88,7 +88,7 @@
             <span class="menu-item-label">Login</span>
             </a>
         </li> -->
-        <li>
+        <!-- <li>
             <a class="dropdown">
             <span class="icon"><i class="mdi mdi-view-list"></i></span>
             <span class="menu-item-label">Submenus</span>
@@ -106,7 +106,7 @@
                 </router-link>
             </li>
             </ul>
-        </li>
+        </li> -->
         </ul>
         <!-- <p class="menu-label">About</p>
         <ul class="menu-list">

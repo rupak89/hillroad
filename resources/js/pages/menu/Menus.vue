@@ -257,147 +257,141 @@
   </section>
 </template>
 
-<script>
-import axios from 'axios';
-import { useFlashMessage } from '@/composables/useFlashMessage.js';
-import Pagination from '../../components/Pagination.vue';
+<script setup>
+import { ref, reactive, onMounted } from 'vue'
+import { useRoute, useRouter } from 'vue-router'
+import axios from 'axios'
+import { useFlashMessage } from '@/composables/useFlashMessage.js'
+import Pagination from '../../components/Pagination.vue'
 
-export default {
-  components: {
-    Pagination
-  },
-  setup() {
-    const { success, error } = useFlashMessage();
-    return { success, error };
-  },
-  data() {
-    return {
-      menus: [],
-      deletingMenuIds: new Set(),
-      pagination: {
-        current_page: 1,
-        per_page: 10,
-        total: 0,
-        last_page: 1,
-        from: 0,
-        to: 0
-      },
-      isLoading: false,
-      showCostModal: false,
-      costBreakdown: null,
-    };
-  },
-  mounted() {
-    this.fetchMenusList();
-    this.checkForSuccessMessage();
-  },
-  methods: {
-    checkForSuccessMessage() {
-      if (this.$route.query.success && this.$route.query.menu) {
-        const action = this.$route.query.success === 'created' ? 'created' : 'updated';
-        this.success(
-          `Menu ${action === 'created' ? 'Created' : 'Updated'}`,
-          `"${this.$route.query.menu}" has been ${action} successfully!`
-        );
+const route = useRoute()
+const router = useRouter()
+const { success, error } = useFlashMessage()
 
-        // Clear the query parameters
-        this.$router.replace({ path: '/menus' });
-      }
-    },
+// Data
+const menus = ref([])
+const deletingMenuIds = ref(new Set())
+const pagination = reactive({
+  current_page: 1,
+  per_page: 10,
+  total: 0,
+  last_page: 1,
+  from: 0,
+  to: 0
+})
+const isLoading = ref(false)
+const showCostModal = ref(false)
+const costBreakdown = ref(null)
 
-    async fetchMenusList(page = 1) {
-      this.isLoading = true;
-      try {
-        const response = await axios.get(`/api/menus?page=${page}&per_page=${this.pagination.per_page}`);
+// Methods
+const checkForSuccessMessage = () => {
+  if (route.query.success && route.query.menu) {
+    const action = route.query.success === 'created' ? 'created' : 'updated'
+    success(
+      `Menu ${action === 'created' ? 'Created' : 'Updated'}`,
+      `"${route.query.menu}" has been ${action} successfully!`
+    )
 
-        this.menus = response.data.menus.data;
-        this.pagination = {
-          current_page: response.data.menus.current_page,
-          per_page: response.data.menus.per_page,
-          total: response.data.menus.total,
-          last_page: response.data.menus.last_page,
-          from: response.data.menus.from,
-          to: response.data.menus.to
-        };
-
-      } catch (error) {
-        console.error('Error fetching menus:', error);
-        this.error('Loading Error', 'Error loading menus. Please refresh the page.');
-      } finally {
-        this.isLoading = false;
-      }
-    },
-
-    goToPage(page) {
-      if (page >= 1 && page <= this.pagination.last_page && page !== this.pagination.current_page) {
-        this.fetchMenusList(page);
-      }
-    },
-
-    changePerPage(newPerPage) {
-      this.pagination.per_page = newPerPage;
-      this.fetchMenusList(1);
-    },
-
-    async deleteMenu(menuId, menuName) {
-      if (!confirm(`Are you sure you want to delete menu "${menuName}"? This action cannot be undone.`)) {
-        return;
-      }
-
-      this.deletingMenuIds.add(menuId);
-
-      try {
-        await axios.delete(`/api/menus/${menuId}`);
-
-        this.menus = this.menus.filter(menu => menu.id !== menuId);
-        this.pagination.total = Math.max(0, this.pagination.total - 1);
-
-        if (this.menus.length === 0 && this.pagination.current_page > 1) {
-          this.goToPage(this.pagination.current_page - 1);
-        }
-
-        this.success('Menu Deleted', `"${menuName}" has been deleted successfully.`);
-      } catch (deleteError) {
-        console.error('Error deleting menu:', deleteError);
-        this.error('Delete Failed', 'Error deleting menu. Please try again.');
-      } finally {
-        this.deletingMenuIds.delete(menuId);
-      }
-    },
-
-    async duplicateMenu(menuId, menuName) {
-      try {
-        const response = await axios.post(`/api/menus/${menuId}/duplicate`);
-
-        this.success('Menu Duplicated', `"${menuName}" has been duplicated successfully.`);
-        this.fetchMenusList(); // Refresh the list
-      } catch (duplicateError) {
-        console.error('Error duplicating menu:', duplicateError);
-        this.error('Duplicate Failed', 'Error duplicating menu. Please try again.');
-      }
-    },
-
-    async viewCostBreakdown(menuId) {
-      try {
-        const response = await axios.get(`/api/menus/${menuId}/cost-breakdown`);
-        this.costBreakdown = response.data.breakdown;
-        this.showCostModal = true;
-      } catch (costError) {
-        console.error('Error fetching cost breakdown:', costError);
-        this.error('Cost Calculation Failed', 'Error calculating menu costs.');
-      }
-    },
-
-    closeCostModal() {
-      this.showCostModal = false;
-      this.costBreakdown = null;
-    },
-
-    isMenuDeleting(menuId) {
-      return this.deletingMenuIds.has(menuId);
-    }
+    // Clear the query parameters
+    router.replace({ path: '/menus' })
   }
-};
+}
+
+const fetchMenusList = async (page = 1) => {
+  isLoading.value = true
+  try {
+    const response = await axios.get(`/api/menus?page=${page}&per_page=${pagination.per_page}`)
+
+    menus.value = response.data.menus.data
+    pagination.current_page = response.data.menus.current_page
+    pagination.per_page = response.data.menus.per_page
+    pagination.total = response.data.menus.total
+    pagination.last_page = response.data.menus.last_page
+    pagination.from = response.data.menus.from
+    pagination.to = response.data.menus.to
+
+  } catch (fetchError) {
+    console.error('Error fetching menus:', fetchError)
+    error('Loading Error', 'Error loading menus. Please refresh the page.')
+  } finally {
+    isLoading.value = false
+  }
+}
+
+const goToPage = (page) => {
+  if (page >= 1 && page <= pagination.last_page && page !== pagination.current_page) {
+    fetchMenusList(page)
+  }
+}
+
+const changePerPage = (newPerPage) => {
+  pagination.per_page = newPerPage
+  fetchMenusList(1)
+}
+
+const deleteMenu = async (menuId, menuName) => {
+  if (!confirm(`Are you sure you want to delete menu "${menuName}"? This action cannot be undone.`)) {
+    return
+  }
+
+  deletingMenuIds.value.add(menuId)
+
+  try {
+    await axios.delete(`/api/menus/${menuId}`)
+
+    menus.value = menus.value.filter(menu => menu.id !== menuId)
+    pagination.total = Math.max(0, pagination.total - 1)
+
+    if (menus.value.length === 0 && pagination.current_page > 1) {
+      goToPage(pagination.current_page - 1)
+    }
+
+    success('Menu Deleted', `"${menuName}" has been deleted successfully.`)
+  } catch (deleteError) {
+    console.error('Error deleting menu:', deleteError)
+    error('Delete Failed', 'Error deleting menu. Please try again.')
+  } finally {
+    deletingMenuIds.value.delete(menuId)
+  }
+}
+
+const duplicateMenu = async (menuId, menuName) => {
+  try {
+    const response = await axios.post(`/api/menus/${menuId}/duplicate`)
+
+    success('Menu Duplicated', `"${menuName}" has been duplicated successfully.`)
+    fetchMenusList() // Refresh the list
+  } catch (duplicateError) {
+    console.error('Error duplicating menu:', duplicateError)
+    error('Duplicate Failed', 'Error duplicating menu. Please try again.')
+  }
+}
+
+const viewCostBreakdown = async (menuId) => {
+  try {
+    const response = await axios.get(`/api/menus/${menuId}/cost-breakdown`)
+    costBreakdown.value = response.data.breakdown
+    showCostModal.value = true
+  } catch (costError) {
+    console.error('Error fetching cost breakdown:', costError)
+    error('Cost Calculation Failed', 'Error calculating menu costs.')
+  }
+}
+
+const closeCostModal = () => {
+  showCostModal.value = false
+  costBreakdown.value = null
+}
+
+const isMenuDeleting = (menuId) => {
+  return deletingMenuIds.value.has(menuId)
+}
+
+// Component lifecycle
+onMounted(() => {
+  fetchMenusList()
+  checkForSuccessMessage()
+})
 </script>
 
 <style scoped>

@@ -191,46 +191,43 @@
   </div>
 </template>
 
-<script>
+<script setup>
+import { ref, onMounted } from 'vue'
+import { useRoute } from 'vue-router'
 import axios from 'axios'
 
-export default {
-  name: 'PrintableMenu',
+const route = useRoute()
 
-  data() {
-    return {
-      menu: null,
-      isLoading: false,
-      error: null,
-    }
-  },
+// Data
+const menu = ref(null)
+const isLoading = ref(false)
+const error = ref(null)
 
-  async mounted() {
-    await this.fetchPrintableMenu()
-  },
+// Methods
+const fetchPrintableMenu = async () => {
+  isLoading.value = true
+  error.value = null
 
-  methods: {
-    async fetchPrintableMenu() {
-      this.isLoading = true
-      this.error = null
-
-      try {
-        const menuId = this.$route.params.id
-        const response = await axios.get(`/api/menus/${menuId}/printable`)
-        this.menu = response.data.menu
-      } catch (error) {
-        console.error('Error fetching printable menu:', error)
-        this.error = error.response?.data?.message || 'Failed to load printable menu'
-      } finally {
-        this.isLoading = false
-      }
-    },
-
-    printMenu() {
-      window.print()
-    }
+  try {
+    const menuId = route.params.id
+    const response = await axios.get(`/api/menus/${menuId}/printable`)
+    menu.value = response.data.menu
+  } catch (fetchError) {
+    console.error('Error fetching printable menu:', fetchError)
+    error.value = fetchError.response?.data?.message || 'Failed to load printable menu'
+  } finally {
+    isLoading.value = false
   }
 }
+
+const printMenu = () => {
+  window.print()
+}
+
+// Component lifecycle
+onMounted(async () => {
+  await fetchPrintableMenu()
+})
 </script>
 
 <style scoped>

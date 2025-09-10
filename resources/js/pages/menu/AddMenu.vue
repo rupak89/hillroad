@@ -353,481 +353,463 @@
   </section>
 </template>
 
-<script>
-import axios from 'axios';
-import { useFlashMessage } from '@/composables/useFlashMessage.js';
-import Multiselect from '@vueform/multiselect';
+<script setup>
+import { ref, reactive, computed, watch, nextTick, onMounted } from 'vue'
+import { useRoute, useRouter } from 'vue-router'
+import axios from 'axios'
+import { useFlashMessage } from '@/composables/useFlashMessage.js'
+import Multiselect from '@vueform/multiselect'
 
-export default {
-  components: {
-    Multiselect
-  },
-  setup() {
-    const { success, error } = useFlashMessage();
-    return { success, error };
-  },
-  data() {
-    return {
-      menu: {
-        name: '',
-        description: '',
-        target_head_count: 1,
-        markup_percentage: 0,
-        segments: [
-          {
-            name: 'Starter',
-            sort_order: 1,
-            items: [
-              { recipe_id: '', quantity: 1, notes: '' }
-            ]
-          },
-          {
-            name: 'Main',
-            sort_order: 2,
-            items: [
-              { recipe_id: '', quantity: 1, notes: '' }
-            ]
-          },
-          {
-            name: 'Side',
-            sort_order: 3,
-            items: [
-              { recipe_id: '', quantity: 1, notes: '' }
-            ]
-          },
-          {
-            name: 'Dessert',
-            sort_order: 4,
-            items: [
-              { recipe_id: '', quantity: 1, notes: '' }
-            ]
-          }
-        ]
-      },
-      recipes: [],
-      recipeCosts: {}, // Store calculated costs for recipes { recipeId: totalCost }
-      loadingCosts: new Set(), // Track which recipe costs are being loaded
-      errors: {},
-      isSubmitting: false,
-      isLoading: true,
-      menuId: null,
-      deletingSegments: [], // Track which segments are being deleted
-      deletingItems: [], // Track which items are being deleted
-    };
-  },
-  computed: {
-    isEditMode() {
-      return this.$route.params.id !== undefined;
+const route = useRoute()
+const router = useRouter()
+const { success, error } = useFlashMessage()
+
+// Reactive data
+const menu = reactive({
+  name: '',
+  description: '',
+  target_head_count: 1,
+  markup_percentage: 0,
+  segments: [
+    {
+      name: 'Starter',
+      sort_order: 1,
+      items: [{ recipe_id: '', quantity: 1, notes: '' }]
     },
-
-    // Memoized costs to prevent recursive updates
-    memoizedSegmentCosts() {
-      const costs = {};
-      this.menu.segments.forEach((segment, index) => {
-        costs[index] = this.calculateSegmentCost(segment);
-      });
-      return costs;
+    {
+      name: 'Main',
+      sort_order: 2,
+      items: [{ recipe_id: '', quantity: 1, notes: '' }]
     },
-
-    memoizedTotalCost() {
-      return Object.values(this.memoizedSegmentCosts).reduce((total, cost) => total + cost, 0);
-    },
-
-    memoizedMarkupAmount() {
-      if (this.menu.markup_percentage > 0) {
-        return this.memoizedTotalCost * (this.menu.markup_percentage / 100);
-      }
-      return 0;
-    },
-
-    memoizedSellingPricePerPerson() {
-      return this.memoizedTotalCost + this.memoizedMarkupAmount;
+    {
+      name: 'Dessert',
+      sort_order: 3,
+      items: [{ recipe_id: '', quantity: 1, notes: '' }]
     }
-  },
-  watch: {
-    // Watch for changes in target_head_count to update total costs display
-    'menu.target_head_count'() {
-      // Total cost calculations will automatically update
-      // No need to refetch recipe costs since those don't change
+  ]
+})
+
+const recipes = ref([])
+const recipeCosts = ref({}) // Store calculated costs for recipes { recipeId: totalCost }
+const loadingCosts = ref(new Set()) // Track which recipe costs are being loaded
+const errors = ref({})
+const isSubmitting = ref(false)
+const isLoading = ref(true)
+const menuId = ref(null)
+const deletingSegments = ref([]) // Track which segments are being deleted
+const deletingItems = ref([]) // Track which items are being deleted
+
+// Computed properties
+const isEditMode = computed(() => {
+  return route.params.id !== undefined
+})
+
+// Memoized costs to prevent recursive updates
+const memoizedSegmentCosts = computed(() => {
+  const costs = {}
+  menu.segments.forEach((segment, index) => {
+    costs[index] = calculateSegmentCost(segment)
+  })
+  return costs
+})
+
+const memoizedTotalCost = computed(() => {
+  return Object.values(memoizedSegmentCosts.value).reduce((total, cost) => total + cost, 0)
+})
+
+const memoizedMarkupAmount = computed(() => {
+  if (menu.markup_percentage > 0) {
+    return memoizedTotalCost.value * (menu.markup_percentage / 100)
+  }
+  return 0
+})
+
+const memoizedSellingPricePerPerson = computed(() => {
+  return memoizedTotalCost.value + memoizedMarkupAmount.value
+})
+
+// Watch for changes in target_head_count to update total costs display
+watch(() => menu.target_head_count, () => {
+  // Total cost calculations will automatically update
+  // No need to refetch recipe costs since those don't change
+})
+
+// Methods
+const fetchRecipes = async () => {
+  try {
+    const response = await axios.get('/api/recipes-dropdown-data')
+    recipes.value = response.data.recipes
+  } catch (fetchError) {
+    console.error('Error fetching recipes:', fetchError)
+    error('Loading Error', 'Error loading recipes. Please refresh the page.')
+  }
+}
+
+const fetchRecipeCosts = async () => {
+  try {
+    // Get all unique recipe IDs that are selected
+    const recipeIds = []
+    menu.segments.forEach(segment => {
+      segment.items.forEach(item => {
+        if (item.recipe_id && !recipeIds.includes(item.recipe_id)) {
+          recipeIds.push(item.recipe_id)
+        }
+      })
+    })
+
+    if (recipeIds.length === 0) {
+      recipeCosts.value = {}
+      return
     }
-  },
-  methods: {
-    async fetchRecipes() {
-      try {
-        const response = await axios.get('/api/recipes-dropdown-data');
-        this.recipes = response.data.recipes;
-      } catch (fetchError) {
-        console.error('Error fetching recipes:', fetchError);
-        this.error('Loading Error', 'Error loading recipes. Please refresh the page.');
-      }
-    },
 
-    async fetchRecipeCosts() {
-      try {
-        // Get all unique recipe IDs that are selected
-        const recipeIds = [];
-        this.menu.segments.forEach(segment => {
-          segment.items.forEach(item => {
-            if (item.recipe_id && !recipeIds.includes(item.recipe_id)) {
-              recipeIds.push(item.recipe_id);
-            }
-          });
-        });
+    const response = await axios.post('/api/recipes/calculate-multiple-costs', {
+      recipe_ids: recipeIds
+    })
 
-        if (recipeIds.length === 0) {
-          this.recipeCosts = {};
-          return;
-        }
-
-        const response = await axios.post('/api/recipes/calculate-multiple-costs', {
-          recipe_ids: recipeIds
-        });
-
-        if (response.data.success) {
-          // Convert the cost data array to an object for easy lookup
-          this.recipeCosts = {};
-          response.data.cost_data.forEach(cost => {
-            this.recipeCosts[cost.recipe_id] = cost.total_cost || 0;
-          });
-        }
-      } catch (error) {
-        console.error('Error fetching recipe costs:', error);
-        // Don't show error to user, just log it and continue with 0 costs
-        this.recipeCosts = {};
-      }
-    },
-
-    async fetchSingleRecipeCost(recipeId) {
-      try {
-        // Check if we already have the cost for this recipe or if it's currently loading
-        if (this.recipeCosts[recipeId] !== undefined || this.loadingCosts.has(recipeId)) {
-          return; // Already have the cost or currently loading
-        }
-
-        // Mark as loading
-        this.loadingCosts.add(recipeId);
-
-        const response = await axios.get(`/api/recipes/${recipeId}/cost`);
-
-        if (response.data.success) {
-          // Batch update to prevent multiple reactive triggers
-          const newCosts = { ...this.recipeCosts };
-          newCosts[recipeId] = response.data.cost_data.total_cost || 0;
-          this.recipeCosts = newCosts;
-        }
-      } catch (error) {
-        console.error(`Error fetching cost for recipe ${recipeId}:`, error);
-        // Set cost to 0 if there's an error
-        const newCosts = { ...this.recipeCosts };
-        newCosts[recipeId] = 0;
-        this.recipeCosts = newCosts;
-      } finally {
-        // Remove from loading set
-        this.loadingCosts.delete(recipeId);
-      }
-    },
-
-    async fetchMenu() {
-      if (!this.isEditMode) return;
-
-      try {
-        const response = await axios.get(`/api/menus/${this.$route.params.id}`);
-        const menuData = response.data.menu;
-
-        this.menuId = menuData.id;
-        this.menu.name = menuData.name;
-        this.menu.description = menuData.description || '';
-        this.menu.target_head_count = menuData.target_head_count;
-        this.menu.markup_percentage = menuData.markup_percentage || 0;
-
-        // Populate segments
-        if (menuData.segments && menuData.segments.length > 0) {
-          this.menu.segments = menuData.segments.map(segment => ({
-            id: segment.id,
-            name: segment.name,
-            sort_order: segment.sort_order,
-            items: segment.items && segment.items.length > 0
-              ? segment.items.map(item => ({
-                  id: item.id,
-                  recipe_id: item.recipe_id,
-                  quantity: parseFloat(item.quantity),
-                  notes: item.notes || ''
-                }))
-              : [{ recipe_id: '', quantity: 1, notes: '' }]
-          }));
-        }
-
-      } catch (fetchError) {
-        console.error('Error fetching menu:', fetchError);
-        this.error('Loading Error', 'Error loading menu data.');
-        this.$router.push('/menus');
-      }
-    },
-
-    addCustomSegment() {
-      const newSegment = {
-        name: 'Custom Segment',
-        sort_order: this.menu.segments.length + 1,
-        items: [
-          { recipe_id: '', quantity: 1, notes: '' }
-        ]
-      };
-      this.menu.segments.push(newSegment);
-    },
-
-    async removeSegment(segmentIndex) {
-      if (this.menu.segments.length <= 1) {
-        return; // Don't allow removing the last segment
-      }
-
-      const segment = this.menu.segments[segmentIndex];
-
-      // If this is an existing segment (has an ID) and we're in edit mode, delete from backend
-      if (this.isEditMode && segment.id) {
-        // Add to deleting list
-        this.deletingSegments.push(segment.id);
-
-        try {
-          await axios.delete(`/api/menu-segments/${segment.id}`);
-        } catch (error) {
-          console.error('Error deleting segment from backend:', error);
-          this.error('Delete Failed', 'Failed to delete segment. Please try again.');
-          return; // Don't remove from frontend if backend deletion failed
-        } finally {
-          // Remove from deleting list
-          this.deletingSegments = this.deletingSegments.filter(id => id !== segment.id);
-        }
-      }
-
-      // Remove from frontend
-      this.menu.segments.splice(segmentIndex, 1);
-    },
-
-    addItem(segmentIndex) {
-      const newItem = {
-        recipe_id: '',
-        quantity: 1,
-        notes: ''
-      };
-      this.menu.segments[segmentIndex].items.push(newItem);
-      // Note: No need to fetch costs here since recipe_id is empty
-    },
-
-    async removeItem(segmentIndex, itemIndex) {
-      if (this.menu.segments[segmentIndex].items.length <= 1) {
-        return; // Don't allow removing the last item from a segment
-      }
-
-      const item = this.menu.segments[segmentIndex].items[itemIndex];
-      const itemKey = `${segmentIndex}-${itemIndex}`;
-
-      // If this is an existing item (has an ID) and we're in edit mode, delete from backend
-      if (this.isEditMode && item.id) {
-        // Add to deleting list
-        this.deletingItems.push(item.id);
-
-        try {
-          await axios.delete(`/api/menu-segment-items/${item.id}`);
-        } catch (error) {
-          console.error('Error deleting item from backend:', error);
-          this.error('Delete Failed', 'Failed to delete item. Please try again.');
-          return; // Don't remove from frontend if backend deletion failed
-        } finally {
-          // Remove from deleting list
-          this.deletingItems = this.deletingItems.filter(id => id !== item.id);
-        }
-      }
-
-      // Remove from frontend
-      this.menu.segments[segmentIndex].items.splice(itemIndex, 1);
-
-      // Note: We keep the cost in recipeCosts even after removing item
-      // since the same recipe might be used elsewhere in the menu
-    },
-
-    onRecipeChange(segmentIndex, itemIndex, recipeId) {
-      // Use setTimeout to avoid reactive update loops during Multiselect events
-      setTimeout(() => {
-        // Optional: Auto-set quantity based on recipe servings or other logic
-        const selectedRecipe = this.recipes.find(recipe => recipe.id == recipeId);
-        if (selectedRecipe) {
-          // Could implement logic to suggest quantity based on recipe servings
-        }
-
-        // Fetch cost for the selected recipe
-        if (recipeId) {
-          this.fetchSingleRecipeCost(recipeId);
-        }
-      }, 0);
-    },
-
-    getRecipeCost(recipeId) {
-      if (!recipeId) return 0;
-
-      // Return existing cost if available
-      if (this.recipeCosts[recipeId] !== undefined) {
-        return this.recipeCosts[recipeId] || 0;
-      }
-
-      // Schedule fetch for next tick to avoid recursive updates
-      if (!this.loadingCosts.has(recipeId)) {
-        this.$nextTick(() => {
-          if (!this.loadingCosts.has(recipeId) && this.recipeCosts[recipeId] === undefined) {
-            this.fetchSingleRecipeCost(recipeId);
-          }
-        });
-      }
-
-      return 0; // Return 0 while loading
-    },
-
-    calculateItemCost(item) {
-      if (!item.recipe_id || !item.quantity) return 0;
-
-      const recipeCost = this.recipeCosts[item.recipe_id] || 0;
-      return recipeCost * item.quantity;
-    },
-
-    calculateSegmentCost(segment) {
-      if (!segment.items) return 0;
-
-      return segment.items.reduce((total, item) => {
-        return total + this.calculateItemCost(item);
-      }, 0);
-    },
-
-    // Legacy methods for template compatibility (now use computed properties)
-    getItemCost(item) {
-      return this.calculateItemCost(item);
-    },
-
-    getSegmentCost(segment) {
-      // Use index-based lookup from computed property if available
-      const segmentIndex = this.menu.segments.indexOf(segment);
-      if (segmentIndex !== -1 && this.memoizedSegmentCosts[segmentIndex] !== undefined) {
-        return this.memoizedSegmentCosts[segmentIndex];
-      }
-      return this.calculateSegmentCost(segment);
-    },
-
-    getTotalCost() {
-      return this.memoizedTotalCost;
-    },
-
-    getMarkupAmount() {
-      return this.memoizedMarkupAmount;
-    },
-
-    getSellingPricePerPerson() {
-      return this.memoizedSellingPricePerPerson;
-    },
-
-    cleanFormData() {
-      // Remove empty segments and items
-      this.menu.segments = this.menu.segments.filter(segment => {
-        segment.items = segment.items.filter(item => item.recipe_id && item.quantity);
-        return segment.name && segment.items.length > 0;
-      });
-    },
-
-    validateMenu() {
-      if (this.menu.segments.length === 0) {
-        return {
-          isValid: false,
-          message: 'A menu must have at least one segment with items.'
-        };
-      }
-
-      const hasItems = this.menu.segments.some(segment =>
-        segment.items.some(item => item.recipe_id && item.quantity)
-      );
-
-      if (!hasItems) {
-        return {
-          isValid: false,
-          message: 'A menu must have at least one recipe item.'
-        };
-      }
-
-      return { isValid: true };
-    },
-
-    async submitForm() {
-      this.errors = {};
-      this.isSubmitting = true;
-
-      try {
-        // Validate the menu first
-        const validation = this.validateMenu();
-        if (!validation.isValid) {
-          this.error('Validation Error', validation.message);
-          return;
-        }
-
-        // Clean the form data before submitting
-        this.cleanFormData();
-
-        let response;
-        if (this.isEditMode) {
-          response = await axios.put(`/api/menus/${this.$route.params.id}`, this.menu);
-        } else {
-          response = await axios.post('/api/menus', this.menu);
-        }
-
-        const action = this.isEditMode ? 'updated' : 'created';
-        const menuName = response.data.menu.name;
-
-        this.success(
-          `Menu ${action === 'created' ? 'Created' : 'Updated'}`,
-          `"${menuName}" has been ${action} successfully!`
-        );
-
-        // Redirect to menus list with success message
-        this.$router.push({
-          path: '/menus',
-          query: {
-            success: action,
-            menu: menuName
-          }
-        });
-
-      } catch (submitError) {
-        console.error('Error submitting form:', submitError);
-
-        if (submitError.response && submitError.response.status === 422) {
-          // Validation errors
-          this.errors = submitError.response.data.errors || {};
-        } else {
-          // Other errors
-          this.error(
-            'Submit Failed',
-            `Error ${this.isEditMode ? 'updating' : 'creating'} menu. Please try again.`
-          );
-        }
-      } finally {
-        this.isSubmitting = false;
-      }
+    if (response.data.success) {
+      // Convert the cost data array to an object for easy lookup
+      recipeCosts.value = {}
+      response.data.cost_data.forEach(cost => {
+        recipeCosts.value[cost.recipe_id] = cost.total_cost || 0
+      })
     }
-  },
+  } catch (error) {
+    console.error('Error fetching recipe costs:', error)
+    // Don't show error to user, just log it and continue with 0 costs
+    recipeCosts.value = {}
+  }
+}
 
-  async mounted() {
-    this.isLoading = true;
+const fetchSingleRecipeCost = async (recipeId) => {
+  try {
+    // Check if we already have the cost for this recipe or if it's currently loading
+    if (recipeCosts.value[recipeId] !== undefined || loadingCosts.value.has(recipeId)) {
+      return // Already have the cost or currently loading
+    }
+
+    // Mark as loading
+    loadingCosts.value.add(recipeId)
+
+    const response = await axios.get(`/api/recipes/${recipeId}/cost`)
+
+    if (response.data.success) {
+      // Batch update to prevent multiple reactive triggers
+      const newCosts = { ...recipeCosts.value }
+      newCosts[recipeId] = response.data.cost_data.total_cost || 0
+      recipeCosts.value = newCosts
+    }
+  } catch (error) {
+    console.error(`Error fetching cost for recipe ${recipeId}:`, error)
+    // Set cost to 0 if there's an error
+    const newCosts = { ...recipeCosts.value }
+    newCosts[recipeId] = 0
+    recipeCosts.value = newCosts
+  } finally {
+    // Remove from loading set
+    loadingCosts.value.delete(recipeId)
+  }
+}
+
+const fetchMenu = async () => {
+  if (!isEditMode.value) return
+
+  try {
+    const response = await axios.get(`/api/menus/${route.params.id}`)
+    const menuData = response.data.menu
+
+    menuId.value = menuData.id
+    menu.name = menuData.name
+    menu.description = menuData.description || ''
+    menu.target_head_count = menuData.target_head_count
+    menu.markup_percentage = menuData.markup_percentage || 0
+
+    // Populate segments
+    if (menuData.segments && menuData.segments.length > 0) {
+      menu.segments = menuData.segments.map(segment => ({
+        id: segment.id,
+        name: segment.name,
+        sort_order: segment.sort_order,
+        items: segment.items && segment.items.length > 0
+          ? segment.items.map(item => ({
+              id: item.id,
+              recipe_id: item.recipe_id,
+              quantity: parseFloat(item.quantity),
+              notes: item.notes || ''
+            }))
+          : [{ recipe_id: '', quantity: 1, notes: '' }]
+      }))
+    }
+
+  } catch (fetchError) {
+    console.error('Error fetching menu:', fetchError)
+    error('Loading Error', 'Error loading menu data.')
+    router.push('/menus')
+  }
+}
+
+const addCustomSegment = () => {
+  const newSegment = {
+    name: 'Custom Segment',
+    sort_order: menu.segments.length + 1,
+    items: [
+      { recipe_id: '', quantity: 1, notes: '' }
+    ]
+  }
+  menu.segments.push(newSegment)
+}
+
+const removeSegment = async (segmentIndex) => {
+  if (menu.segments.length <= 1) {
+    return // Don't allow removing the last segment
+  }
+
+  const segment = menu.segments[segmentIndex]
+
+  // If this is an existing segment (has an ID) and we're in edit mode, delete from backend
+  if (isEditMode.value && segment.id) {
+    // Add to deleting list
+    deletingSegments.value.push(segment.id)
+
     try {
-      await this.fetchRecipes();
-
-      if (this.isEditMode) {
-        await this.fetchMenu();
-        // Fetch costs for existing menu items
-        await this.fetchRecipeCosts();
-      }
+      await axios.delete(`/api/menu-segments/${segment.id}`)
     } catch (error) {
-      console.error('Error loading data:', error);
-      this.error('Loading Error', 'Error loading form data. Please refresh the page.');
+      console.error('Error deleting segment from backend:', error)
+      error('Delete Failed', 'Failed to delete segment. Please try again.')
+      return // Don't remove from frontend if backend deletion failed
     } finally {
-      this.isLoading = false;
+      // Remove from deleting list
+      deletingSegments.value = deletingSegments.value.filter(id => id !== segment.id)
     }
   }
-};
+
+  // Remove from frontend
+  menu.segments.splice(segmentIndex, 1)
+}
+
+const addItem = (segmentIndex) => {
+  const newItem = {
+    recipe_id: '',
+    quantity: 1,
+    notes: ''
+  }
+  menu.segments[segmentIndex].items.push(newItem)
+  // Note: No need to fetch costs here since recipe_id is empty
+}
+
+const removeItem = async (segmentIndex, itemIndex) => {
+  if (menu.segments[segmentIndex].items.length <= 1) {
+    return // Don't allow removing the last item from a segment
+  }
+
+  const item = menu.segments[segmentIndex].items[itemIndex]
+  const itemKey = `${segmentIndex}-${itemIndex}`
+
+  // If this is an existing item (has an ID) and we're in edit mode, delete from backend
+  if (isEditMode.value && item.id) {
+    // Add to deleting list
+    deletingItems.value.push(item.id)
+
+    try {
+      await axios.delete(`/api/menu-segment-items/${item.id}`)
+    } catch (error) {
+      console.error('Error deleting item from backend:', error)
+      error('Delete Failed', 'Failed to delete item. Please try again.')
+      return // Don't remove from frontend if backend deletion failed
+    } finally {
+      // Remove from deleting list
+      deletingItems.value = deletingItems.value.filter(id => id !== item.id)
+    }
+  }
+
+  // Remove from frontend
+  menu.segments[segmentIndex].items.splice(itemIndex, 1)
+
+  // Note: We keep the cost in recipeCosts even after removing item
+  // since the same recipe might be used elsewhere in the menu
+}
+
+const onRecipeChange = (segmentIndex, itemIndex, recipeId) => {
+  // Use setTimeout to avoid reactive update loops during Multiselect events
+  setTimeout(() => {
+    // Optional: Auto-set quantity based on recipe servings or other logic
+    const selectedRecipe = recipes.value.find(recipe => recipe.id == recipeId)
+    if (selectedRecipe) {
+      // Could implement logic to suggest quantity based on recipe servings
+    }
+
+    // Fetch cost for the selected recipe
+    if (recipeId) {
+      fetchSingleRecipeCost(recipeId)
+    }
+  }, 0)
+}
+
+const getRecipeCost = (recipeId) => {
+  if (!recipeId) return 0
+
+  // Return existing cost if available
+  if (recipeCosts.value[recipeId] !== undefined) {
+    return recipeCosts.value[recipeId] || 0
+  }
+
+  // Schedule fetch for next tick to avoid recursive updates
+  if (!loadingCosts.value.has(recipeId)) {
+    nextTick(() => {
+      if (!loadingCosts.value.has(recipeId) && recipeCosts.value[recipeId] === undefined) {
+        fetchSingleRecipeCost(recipeId)
+      }
+    })
+  }
+
+  return 0 // Return 0 while loading
+}
+
+const calculateItemCost = (item) => {
+  if (!item.recipe_id || !item.quantity) return 0
+
+  const recipeCost = recipeCosts.value[item.recipe_id] || 0
+  return recipeCost * item.quantity
+}
+
+const calculateSegmentCost = (segment) => {
+  if (!segment.items) return 0
+
+  return segment.items.reduce((total, item) => {
+    return total + calculateItemCost(item)
+  }, 0)
+}
+
+// Legacy methods for template compatibility (now use computed properties)
+const getItemCost = (item) => {
+  return calculateItemCost(item)
+}
+
+const getSegmentCost = (segment) => {
+  // Use index-based lookup from computed property if available
+  const segmentIndex = menu.segments.indexOf(segment)
+  if (segmentIndex !== -1 && memoizedSegmentCosts.value[segmentIndex] !== undefined) {
+    return memoizedSegmentCosts.value[segmentIndex]
+  }
+  return calculateSegmentCost(segment)
+}
+
+const getTotalCost = () => {
+  return memoizedTotalCost.value
+}
+
+const getMarkupAmount = () => {
+  return memoizedMarkupAmount.value
+}
+
+const getSellingPricePerPerson = () => {
+  return memoizedSellingPricePerPerson.value
+}
+
+const cleanFormData = () => {
+  // Remove empty segments and items
+  menu.segments = menu.segments.filter(segment => {
+    segment.items = segment.items.filter(item => item.recipe_id && item.quantity)
+    return segment.name && segment.items.length > 0
+  })
+}
+
+const validateMenu = () => {
+  if (menu.segments.length === 0) {
+    return {
+      isValid: false,
+      message: 'A menu must have at least one segment with items.'
+    }
+  }
+
+  const hasItems = menu.segments.some(segment =>
+    segment.items.some(item => item.recipe_id && item.quantity)
+  )
+
+  if (!hasItems) {
+    return {
+      isValid: false,
+      message: 'A menu must have at least one recipe item.'
+    }
+  }
+
+  return { isValid: true }
+}
+
+const submitForm = async () => {
+  errors.value = {}
+  isSubmitting.value = true
+
+  try {
+    // Validate the menu first
+    const validation = validateMenu()
+    if (!validation.isValid) {
+      error('Validation Error', validation.message)
+      return
+    }
+
+    // Clean the form data before submitting
+    cleanFormData()
+
+    let response
+    if (isEditMode.value) {
+      response = await axios.put(`/api/menus/${route.params.id}`, menu)
+    } else {
+      response = await axios.post('/api/menus', menu)
+    }
+
+    const action = isEditMode.value ? 'updated' : 'created'
+    const menuName = response.data.menu.name
+
+    success(
+      `Menu ${action === 'created' ? 'Created' : 'Updated'}`,
+      `"${menuName}" has been ${action} successfully!`
+    )
+
+    // Redirect to menus list with success message
+    router.push({
+      path: '/menus',
+      query: {
+        success: action,
+        menu: menuName
+      }
+    })
+
+  } catch (submitError) {
+    console.error('Error submitting form:', submitError)
+
+    if (submitError.response && submitError.response.status === 422) {
+      // Validation errors
+      errors.value = submitError.response.data.errors || {}
+    } else {
+      // Other errors
+      error(
+        'Submit Failed',
+        `Error ${isEditMode.value ? 'updating' : 'creating'} menu. Please try again.`
+      )
+    }
+  } finally {
+    isSubmitting.value = false
+  }
+}
+
+// Component lifecycle
+onMounted(async () => {
+  isLoading.value = true
+  try {
+    await fetchRecipes()
+
+    if (isEditMode.value) {
+      await fetchMenu()
+      // Fetch costs for existing menu items
+      await fetchRecipeCosts()
+    }
+  } catch (error) {
+    console.error('Error loading data:', error)
+    error('Loading Error', 'Error loading form data. Please refresh the page.')
+  } finally {
+    isLoading.value = false
+  }
+})
 </script>
 
 <style scoped>
