@@ -3,17 +3,17 @@
 namespace App\Services;
 
 use App\Models\Unit;
-use Ramsey\Uuid\Type\Integer;
+use Illuminate\Database\Eloquent\Collection;
+use Illuminate\Database\Eloquent\ModelNotFoundException;
 
 class UnitService
 {
-
     /**
      * Get the list of units.
      *
-     * @return array
+     * @return Collection<int, Unit>
      */
-    public function getUnits()
+    public function getUnits(): Collection
     {
         return Unit::all();
     }
@@ -21,10 +21,9 @@ class UnitService
     /**
      * Create a new unit.
      *
-     * @param array {name: string, ratio: float, unit_type_id: int} $data
-     * @return Unit
+     * @param  array<string, mixed>  $data
      */
-    public function createUnit(array $data) :Unit
+    public function createUnit(array $data): Unit
     {
         return Unit::create($data);
     }
@@ -32,37 +31,33 @@ class UnitService
     /**
      * Update an existing unit.
      *
-     * @param int $id
-     * @param array $data
-     * @return Unit
+     * @param  array<string, mixed>  $data
+     *
+     * @throws ModelNotFoundException
      */
     public function updateUnit(int $id, array $data): Unit
     {
-        return Unit::updateOrCreate(['id' => $id], $data);
+        $unit = Unit::findOrFail($id);
+        $unit->update($data);
+
+        return $unit->fresh();
     }
+
     /**
      * Delete a unit.
      *
-     * @param int $id
-     * @return bool|null
+     * @throws ModelNotFoundException
      */
-    public function deleteUnit(string $id): ?bool
+    public function deleteUnit(string $id): bool
     {
-        $unit = Unit::find($id);
-        if ($unit) {
-            return $unit->delete();
-        }
-        return null;
+        return Unit::findOrFail($id)->delete();
     }
+
     /**
      * Find a unit by ID.
-     *
-     * @param int $id
-     * @return Unit|null
      */
     public function findUnitById(string $id): ?Unit
     {
-        return Unit::find($id)->first();
+        return Unit::find($id);
     }
-
 }

@@ -7,14 +7,9 @@ use App\Http\Requests\UnitRequest;
 use App\Http\Requests\UpdateUnitRequest;
 use App\Services\UnitService;
 
-
 class UnitController extends Controller
 {
-
-    function __construct(private UnitService $unitService)
-    {
-
-    }
+    public function __construct(private UnitService $unitService) {}
 
     /**
      * Display a listing of the resource.
@@ -46,7 +41,18 @@ class UnitController extends Controller
      */
     public function show(string $id)
     {
-        //
+        $unit = $this->unitService->findUnitById($id);
+
+        if (! $unit) {
+            return response()->json([
+                'message' => 'Unit not found',
+            ], 404);
+        }
+
+        return response()->json([
+            'message' => 'Unit details',
+            'unit' => $unit,
+        ]);
     }
 
     /**
@@ -56,7 +62,6 @@ class UnitController extends Controller
     {
 
         $unit = $this->unitService->updateUnit($id, $request->validated());
-
 
         return response()->json([
             'message' => 'Unit updated successfully',
