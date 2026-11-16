@@ -3,6 +3,7 @@
 namespace App\Http\Requests;
 
 use Illuminate\Foundation\Http\FormRequest;
+use Illuminate\Validation\Rule;
 
 class BrandRequest extends FormRequest
 {
@@ -21,8 +22,17 @@ class BrandRequest extends FormRequest
      */
     public function rules(): array
     {
+        // On update the current brand must be ignored, otherwise saving it
+        // with an unchanged name fails the unique rule.
+        $brandId = $this->route('brand');
+
         return [
-            'name' => 'required|string|max:255|unique:brands,name',
+            'name' => [
+                'required',
+                'string',
+                'max:255',
+                Rule::unique('brands', 'name')->ignore($brandId),
+            ],
             'description' => 'nullable|string|max:500',
         ];
     }
