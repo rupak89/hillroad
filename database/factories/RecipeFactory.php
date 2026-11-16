@@ -15,6 +15,7 @@ class RecipeFactory extends Factory
             'recipe_name' => $this->faker->words(3, true),
             'instruction' => $this->faker->paragraph(),
             'thumbnail' => $this->faker->imageUrl(200, 200, 'food'),
+            'servings' => 1,
             'created_at' => now(),
             'updated_at' => now(),
         ];

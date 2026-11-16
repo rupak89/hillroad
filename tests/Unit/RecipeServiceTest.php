@@ -2,19 +2,17 @@
 
 namespace Tests\Unit;
 
-use App\Services\RecipeService;
-use App\Models\Recipe;
 use App\Models\Item;
-use App\DTOs\CreateRecipeDTO;
-use App\DTOs\UpdateRecipeDTO;
-use Illuminate\Foundation\Testing\RefreshDatabase;
-use Illuminate\Database\Eloquent\ModelNotFoundException;
-use Illuminate\Support\Facades\DB;
-use Illuminate\Support\Facades\Log;
+use App\Models\Recipe;
+use App\Services\RecipeService;
 use Illuminate\Contracts\Pagination\LengthAwarePaginator;
 use Illuminate\Database\Eloquent\Collection;
-use Tests\TestCase;
+use Illuminate\Database\Eloquent\ModelNotFoundException;
+use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Support\Facades\Log;
 use Mockery;
+use PHPUnit\Framework\Attributes\Test;
+use Tests\TestCase;
 
 class RecipeServiceTest extends TestCase
 {
@@ -25,7 +23,7 @@ class RecipeServiceTest extends TestCase
     protected function setUp(): void
     {
         parent::setUp();
-        $this->recipeService = new RecipeService();
+        $this->recipeService = new RecipeService;
     }
 
     protected function tearDown(): void
@@ -34,7 +32,7 @@ class RecipeServiceTest extends TestCase
         parent::tearDown();
     }
 
-    /** @test */
+    #[Test]
     public function it_can_get_paginated_recipes()
     {
         // Arrange
@@ -50,14 +48,14 @@ class RecipeServiceTest extends TestCase
         $this->assertCount(10, $result->items());
     }
 
-    /** @test */
+    #[Test]
     public function it_can_create_recipe_without_ingredients_and_sub_recipes()
     {
         // Arrange
         $data = [
             'recipe_name' => 'Test Recipe',
             'instruction' => 'Test instructions',
-            'thumbnail' => 'test.jpg'
+            'thumbnail' => 'test.jpg',
         ];
 
         // Act
@@ -71,11 +69,11 @@ class RecipeServiceTest extends TestCase
         $this->assertDatabaseHas('recipes', [
             'recipe_name' => 'Test Recipe',
             'instruction' => 'Test instructions',
-            'thumbnail' => 'test.jpg'
+            'thumbnail' => 'test.jpg',
         ]);
     }
 
-    /** @test */
+    #[Test]
     public function it_can_create_recipe_with_ingredients()
     {
         // Arrange
@@ -89,14 +87,14 @@ class RecipeServiceTest extends TestCase
                 [
                     'item_id' => $item1->id,
                     'unit_id' => 1,
-                    'quantity' => 2.5
+                    'quantity' => 2.5,
                 ],
                 [
                     'item_id' => $item2->id,
                     'unit_id' => 2,
-                    'quantity' => 1.0
-                ]
-            ]
+                    'quantity' => 1.0,
+                ],
+            ],
         ];
 
         // Act
@@ -108,7 +106,7 @@ class RecipeServiceTest extends TestCase
         $this->assertEquals(1, $recipe->items->first()->pivot->unit_id);
     }
 
-    /** @test */
+    #[Test]
     public function it_can_create_recipe_with_sub_recipes()
     {
         // Arrange
@@ -121,13 +119,13 @@ class RecipeServiceTest extends TestCase
             'sub_recipes' => [
                 [
                     'child_recipe_id' => $subRecipe1->id,
-                    'quantity' => 1.0
+                    'quantity' => 1.0,
                 ],
                 [
                     'child_recipe_id' => $subRecipe2->id,
-                    'quantity' => 2.0
-                ]
-            ]
+                    'quantity' => 2.0,
+                ],
+            ],
         ];
 
         // Act
@@ -138,7 +136,7 @@ class RecipeServiceTest extends TestCase
         $this->assertEquals(1.0, $recipe->subRecipes->first()->pivot->quantity);
     }
 
-    /** @test */
+    #[Test]
     public function it_prevents_self_reference_in_sub_recipes()
     {
         // Arrange
@@ -150,9 +148,9 @@ class RecipeServiceTest extends TestCase
             'sub_recipes' => [
                 [
                     'child_recipe_id' => $recipe->id,
-                    'quantity' => 1.0
-                ]
-            ]
+                    'quantity' => 1.0,
+                ],
+            ],
         ];
 
         // Act & Assert
@@ -161,13 +159,13 @@ class RecipeServiceTest extends TestCase
         $this->recipeService->updateRecipe($recipe->id, $data);
     }
 
-    /** @test */
+    #[Test]
     public function it_can_get_recipe_by_id()
     {
         // Arrange
         $recipe = Recipe::factory()->create([
             'recipe_name' => 'Test Recipe',
-            'instruction' => 'Test instructions'
+            'instruction' => 'Test instructions',
         ]);
 
         // Act
@@ -179,7 +177,7 @@ class RecipeServiceTest extends TestCase
         $this->assertEquals('Test Recipe', $result->recipe_name);
     }
 
-    /** @test */
+    #[Test]
     public function it_throws_exception_when_recipe_not_found()
     {
         // Act & Assert
@@ -188,19 +186,19 @@ class RecipeServiceTest extends TestCase
         $this->recipeService->getRecipe(999);
     }
 
-    /** @test */
+    #[Test]
     public function it_can_update_recipe_basic_fields()
     {
         // Arrange
         $recipe = Recipe::factory()->create([
             'recipe_name' => 'Original Recipe',
-            'instruction' => 'Original instructions'
+            'instruction' => 'Original instructions',
         ]);
 
         $data = [
             'recipe_name' => 'Updated Recipe',
             'instruction' => 'Updated instructions',
-            'thumbnail' => 'updated.jpg'
+            'thumbnail' => 'updated.jpg',
         ];
 
         // Act
@@ -214,11 +212,11 @@ class RecipeServiceTest extends TestCase
             'id' => $recipe->id,
             'recipe_name' => 'Updated Recipe',
             'instruction' => 'Updated instructions',
-            'thumbnail' => 'updated.jpg'
+            'thumbnail' => 'updated.jpg',
         ]);
     }
 
-    /** @test */
+    #[Test]
     public function it_can_update_recipe_ingredients()
     {
         // Arrange
@@ -234,9 +232,9 @@ class RecipeServiceTest extends TestCase
                 [
                     'item_id' => $newItem->id,
                     'unit_id' => 2,
-                    'quantity' => 3.0
-                ]
-            ]
+                    'quantity' => 3.0,
+                ],
+            ],
         ];
 
         // Act
@@ -249,7 +247,7 @@ class RecipeServiceTest extends TestCase
         $this->assertEquals(2, $updatedRecipe->items->first()->pivot->unit_id);
     }
 
-    /** @test */
+    #[Test]
     public function it_throws_exception_when_updating_non_existent_recipe()
     {
         // Arrange
@@ -261,7 +259,7 @@ class RecipeServiceTest extends TestCase
         $this->recipeService->updateRecipe(999, $data);
     }
 
-    /** @test */
+    #[Test]
     public function it_can_delete_recipe()
     {
         // Arrange
@@ -275,7 +273,7 @@ class RecipeServiceTest extends TestCase
         $this->assertDatabaseMissing('recipes', ['id' => $recipe->id]);
     }
 
-    /** @test */
+    #[Test]
     public function it_throws_exception_when_deleting_non_existent_recipe()
     {
         // Act & Assert
@@ -284,7 +282,7 @@ class RecipeServiceTest extends TestCase
         $this->recipeService->deleteRecipe(999);
     }
 
-    /** @test */
+    #[Test]
     public function it_can_get_recipes_for_dropdown()
     {
         // Arrange
@@ -298,7 +296,7 @@ class RecipeServiceTest extends TestCase
         $this->assertInstanceOf(Collection::class, $recipes);
     }
 
-    /** @test */
+    #[Test]
     public function it_can_get_recipes_for_dropdown_excluding_specific_recipe()
     {
         // Arrange
@@ -313,7 +311,7 @@ class RecipeServiceTest extends TestCase
         $this->assertFalse($recipes->contains('id', $excludedRecipe->id));
     }
 
-    /** @test */
+    #[Test]
     public function it_can_validate_sub_recipes_without_cycles()
     {
         // Arrange
@@ -327,7 +325,7 @@ class RecipeServiceTest extends TestCase
         $this->assertTrue($result);
     }
 
-    /** @test */
+    #[Test]
     public function it_can_validate_sub_recipes_with_self_reference()
     {
         // Arrange
@@ -340,9 +338,7 @@ class RecipeServiceTest extends TestCase
         $this->assertFalse($result);
     }
 
-
-
-    /** @test */
+    #[Test]
     public function it_handles_empty_sub_recipes_gracefully()
     {
         // Arrange
@@ -351,7 +347,7 @@ class RecipeServiceTest extends TestCase
             'instruction' => 'Test instructions',
             'sub_recipes' => [
 
-            ]
+            ],
         ];
 
         // Act
@@ -361,12 +357,12 @@ class RecipeServiceTest extends TestCase
         $this->assertCount(0, $recipe->subRecipes);
     }
 
-    /** @test */
+    #[Test]
     public function it_validates_required_recipe_name()
     {
         // Arrange
         $data = [
-            'instruction' => 'Test instructions'
+            'instruction' => 'Test instructions',
             // Missing recipe_name
         ];
 
@@ -376,14 +372,14 @@ class RecipeServiceTest extends TestCase
         $this->recipeService->createRecipe($data);
     }
 
-    /** @test */
+    #[Test]
     public function it_can_handle_null_optional_fields()
     {
         // Arrange
         $data = [
             'recipe_name' => 'Minimal Recipe',
             'instruction' => null,
-            'thumbnail' => null
+            'thumbnail' => null,
         ];
 
         // Act
@@ -395,7 +391,7 @@ class RecipeServiceTest extends TestCase
         $this->assertNull($recipe->thumbnail);
     }
 
-    /** @test */
+    #[Test]
     public function it_logs_errors_when_operations_fail()
     {
         // Arrange
@@ -411,5 +407,7 @@ class RecipeServiceTest extends TestCase
         Log::shouldHaveReceived('error')
             ->once()
             ->with('Recipe not found: 999');
+
+        $this->addToAssertionCount(1);
     }
 }

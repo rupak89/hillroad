@@ -2,12 +2,13 @@
 
 namespace Database\Factories;
 
-use App\Models\Item;
-use App\Models\Group;
-use App\Models\Supplier;
 use App\Models\Brand;
+use App\Models\Group;
+use App\Models\Item;
+use App\Models\Supplier;
 use App\Models\Unit;
 use Illuminate\Database\Eloquent\Factories\Factory;
+use Illuminate\Support\Str;
 
 class ItemFactory extends Factory
 {
@@ -16,7 +17,8 @@ class ItemFactory extends Factory
     public function definition(): array
     {
         return [
-            'item_name' => $this->faker->words(2, true),
+            // items.item_name is unique.
+            'item_name' => 'item-'.Str::lower(Str::random(10)),
             'ordering_unit_id' => Unit::factory(),
             'counting_unit_id' => Unit::factory(),
             'default_supplier_id' => Supplier::factory(),
