@@ -21,7 +21,7 @@ class UpdateMenuDTO
             targetHeadCount: $data['target_head_count'],
             markupPercentage: $data['markup_percentage'] ?? 0,
             segments: array_map(
-                fn($segmentData, $index) => UpdateMenuSegmentDTO::fromArray($segmentData, $index),
+                fn ($segmentData, $index) => UpdateMenuSegmentDTO::fromArray($segmentData, $index),
                 $data['segments'],
                 array_keys($data['segments'])
             )

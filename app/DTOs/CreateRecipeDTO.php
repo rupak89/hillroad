@@ -16,25 +16,12 @@ class CreateRecipeDTO extends BaseDTO
 
     public array $sub_recipes = [];
 
-    protected function rules(): array
-    {
-        return [
-            'recipe_name' => 'required|string|max:255',
-            'instruction' => 'nullable|string',
-            'thumbnail' => 'nullable|string|max:500',
-            'servings' => 'nullable|integer|min:1|max:1000',
-            'ingredients' => 'nullable|array',
-            'ingredients.*.item_id' => 'required_with:ingredients.*|integer|exists:items,id',
-            'ingredients.*.unit_id' => 'nullable|integer|exists:units,id',
-            'ingredients.*.quantity' => 'required_with:ingredients.*|numeric|min:0.01',
-            'sub_recipes' => 'nullable|array',
-            'sub_recipes.*.child_recipe_id' => 'required_with:sub_recipes.*|integer|exists:recipes,id',
-            'sub_recipes.*.quantity' => 'required_with:sub_recipes.*|numeric|min:0.01',
-        ];
-    }
-
     protected function fill(array $data): void
     {
+        if (! isset($data['recipe_name']) || trim((string) $data['recipe_name']) === '') {
+            throw new \InvalidArgumentException('The recipe name is required.');
+        }
+
         $this->recipe_name = $data['recipe_name'];
         $this->instruction = $data['instruction'] ?? null;
         $this->thumbnail = $data['thumbnail'] ?? null;

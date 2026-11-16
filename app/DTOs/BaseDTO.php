@@ -2,51 +2,35 @@
 
 namespace App\DTOs;
 
-use Illuminate\Validation\ValidationException;
-use Illuminate\Support\Facades\Validator;
-
 abstract class BaseDTO
 {
     /**
-     * Create DTO from array with validation
+     * Create a DTO from already-validated data.
      *
-     * @param array $data
-     * @return static
-     * @throws ValidationException
+     * Validation is intentionally not performed here: HTTP requests are
+     * validated by their FormRequest, which is the single validation layer.
+     *
+     * @param  array<string, mixed>  $data
      */
     public static function fromArray(array $data): static
     {
-        $instance = new static();
-        $validator = Validator::make($data, $instance->rules());
-
-        if ($validator->fails()) {
-            throw new ValidationException($validator);
-        }
-
-        $instance->fill($validator->validated());
+        $instance = new static;
+        $instance->fill($data);
 
         return $instance;
     }
 
     /**
-     * Get validation rules
+     * Fill the DTO from validated data.
      *
-     * @return array
-     */
-    abstract protected function rules(): array;
-
-    /**
-     * Fill the DTO with validated data
-     *
-     * @param array $data
-     * @return void
+     * @param  array<string, mixed>  $data
      */
     abstract protected function fill(array $data): void;
 
     /**
-     * Convert DTO to array
+     * Convert the DTO back to an array.
      *
-     * @return array
+     * @return array<string, mixed>
      */
     abstract public function toArray(): array;
 }

@@ -17,7 +17,7 @@ class CreateMenuSegmentDTO
             name: $data['name'],
             sortOrder: $data['sort_order'] ?? ($defaultSortOrder + 1),
             items: array_map(
-                fn($itemData) => CreateMenuItemDTO::fromArray($itemData),
+                fn ($itemData) => CreateMenuItemDTO::fromArray($itemData),
                 $data['items']
             )
         );

@@ -23,7 +23,7 @@ class CreateMenuDTO
             markupPercentage: $data['markup_percentage'] ?? 0,
             userId: $userId,
             segments: array_map(
-                fn($segmentData, $index) => CreateMenuSegmentDTO::fromArray($segmentData, $index),
+                fn ($segmentData, $index) => CreateMenuSegmentDTO::fromArray($segmentData, $index),
                 $data['segments'],
                 array_keys($data['segments'])
             )

@@ -29,23 +29,6 @@ class UpdateRecipeDTO extends BaseDTO
 
     public bool $hasSubRecipes = false;
 
-    protected function rules(): array
-    {
-        return [
-            'recipe_name' => 'sometimes|string|max:255',
-            'instruction' => 'nullable|string',
-            'thumbnail' => 'nullable|string|max:500',
-            'servings' => 'sometimes|integer|min:1|max:1000',
-            'ingredients' => 'nullable|array',
-            'ingredients.*.item_id' => 'required_with:ingredients.*|integer|exists:items,id',
-            'ingredients.*.unit_id' => 'nullable|integer|exists:units,id',
-            'ingredients.*.quantity' => 'required_with:ingredients.*|numeric|min:0.01',
-            'sub_recipes' => 'nullable|array',
-            'sub_recipes.*.child_recipe_id' => 'required_with:sub_recipes.*|integer|exists:recipes,id',
-            'sub_recipes.*.quantity' => 'required_with:sub_recipes.*|numeric|min:0.01',
-        ];
-    }
-
     protected function fill(array $data): void
     {
         $this->recipe_name = $data['recipe_name'] ?? $this->recipe_name;

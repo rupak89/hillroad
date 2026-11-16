@@ -3,29 +3,22 @@
 namespace App\Services;
 
 use App\Models\Item;
-use App\Http\Resources\ItemResource;
-use App\DTOs\CreateItemDTO;
-use App\DTOs\UpdateItemDTO;
-use Illuminate\Support\Facades\DB;
-use Illuminate\Support\Facades\Log;
 use Illuminate\Contracts\Pagination\LengthAwarePaginator;
 use Illuminate\Database\Eloquent\ModelNotFoundException;
+use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Log;
 
 class ItemService
 {
     /**
      * Get the list of items with pagination.
-     *
-     * @param int $perPage
-     * @param string|null $search
-     * @return LengthAwarePaginator
      */
     public function getItems(int $perPage = 10, ?string $search = null): LengthAwarePaginator
     {
         $query = Item::with(['supplier', 'defaultBrand', 'group', 'orderingUnit', 'countingUnit']);
 
         if ($search) {
-            $query->where('item_name', 'LIKE', '%' . $search . '%');
+            $query->where('item_name', 'LIKE', '%'.$search.'%');
         }
 
         return $query->orderBy('item_name')
@@ -35,22 +28,16 @@ class ItemService
     /**
      * Create a new item.
      *
-     * @param array $data
-     * @return Item
-     * @throws \Illuminate\Validation\ValidationException
      * @throws \Exception
      */
     public function createItem(array $data): Item
     {
         try {
-            return DB::transaction(function () use ($data) {
-                $dto = CreateItemDTO::fromArray($data);
-                return Item::create($dto->toArray());
-            });
+            return DB::transaction(fn () => Item::create($data));
         } catch (\Exception $e) {
-            Log::error('Error creating item: ' . $e->getMessage(), [
+            Log::error('Error creating item: '.$e->getMessage(), [
                 'data' => $data,
-                'exception' => $e
+                'exception' => $e,
             ]);
             throw $e;
         }
@@ -59,10 +46,6 @@ class ItemService
     /**
      * Update an existing item.
      *
-     * @param int $id
-     * @param array $data
-     * @return Item
-     * @throws \Illuminate\Validation\ValidationException
      * @throws ModelNotFoundException
      * @throws \Exception
      */
@@ -70,19 +53,19 @@ class ItemService
     {
         try {
             return DB::transaction(function () use ($id, $data) {
-                $dto = UpdateItemDTO::fromArray($data);
                 $item = Item::findOrFail($id);
-                $item->update($dto->toArray());
+                $item->update($data);
+
                 return $item->fresh();
             });
         } catch (ModelNotFoundException $e) {
-            Log::error('Item not found for update: ' . $id);
+            Log::error('Item not found for update: '.$id);
             throw $e;
         } catch (\Exception $e) {
-            Log::error('Error updating item: ' . $e->getMessage(), [
+            Log::error('Error updating item: '.$e->getMessage(), [
                 'id' => $id,
                 'data' => $data,
-                'exception' => $e
+                'exception' => $e,
             ]);
             throw $e;
         }
@@ -91,8 +74,6 @@ class ItemService
     /**
      * Delete an item.
      *
-     * @param int $id
-     * @return bool
      * @throws ModelNotFoundException
      * @throws \Exception
      */
@@ -101,15 +82,16 @@ class ItemService
         try {
             return DB::transaction(function () use ($id) {
                 $item = Item::findOrFail($id);
+
                 return $item->delete();
             });
         } catch (ModelNotFoundException $e) {
-            Log::error('Item not found for deletion: ' . $id);
+            Log::error('Item not found for deletion: '.$id);
             throw $e;
         } catch (\Exception $e) {
-            Log::error('Error deleting item: ' . $e->getMessage(), [
+            Log::error('Error deleting item: '.$e->getMessage(), [
                 'id' => $id,
-                'exception' => $e
+                'exception' => $e,
             ]);
             throw $e;
         }
@@ -118,8 +100,6 @@ class ItemService
     /**
      * Get a single item by ID.
      *
-     * @param int $id
-     * @return Item
      * @throws ModelNotFoundException
      */
     public function getItem(int $id): Item
@@ -128,7 +108,7 @@ class ItemService
             return Item::with(['supplier', 'defaultBrand', 'group', 'orderingUnit', 'countingUnit'])
                 ->findOrFail($id);
         } catch (ModelNotFoundException $e) {
-            Log::error('Item not found: ' . $id);
+            Log::error('Item not found: '.$id);
             throw $e;
         }
     }

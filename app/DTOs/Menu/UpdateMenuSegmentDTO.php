@@ -19,7 +19,7 @@ class UpdateMenuSegmentDTO
             name: $data['name'],
             sortOrder: $data['sort_order'] ?? ($defaultSortOrder + 1),
             items: array_map(
-                fn($itemData) => UpdateMenuItemDTO::fromArray($itemData),
+                fn ($itemData) => UpdateMenuItemDTO::fromArray($itemData),
                 $data['items']
             )
         );
