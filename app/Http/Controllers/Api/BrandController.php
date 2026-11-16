@@ -3,29 +3,28 @@
 namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
-use App\Services\BrandService;
 use App\Http\Requests\BrandRequest;
+use App\Services\BrandService;
 use Illuminate\Http\Request;
 
 class BrandController extends Controller
 {
-
-    function __construct(private BrandService $brandService)
-    {
-
-    }
+    public function __construct(private BrandService $brandService) {}
 
     /**
      * Display a listing of the resource.
      */
     public function index(Request $request)
     {
-        $perPage = $request->get('per_page', 10);
-        $brands = $this->brandService->getBrands($perPage);
+        $validated = $request->validate([
+            'per_page' => 'sometimes|integer|min:1|max:100',
+        ]);
+
+        $brands = $this->brandService->getBrands((int) ($validated['per_page'] ?? 10));
 
         return response()->json([
             'message' => 'Brands list',
-            'brands' => $brands
+            'brands' => $brands,
         ]);
     }
 
@@ -49,7 +48,7 @@ class BrandController extends Controller
     {
         $brand = $this->brandService->getBrand($id);
 
-        if (!$brand) {
+        if (! $brand) {
             return response()->json([
                 'message' => 'Brand not found',
             ], 404);

@@ -30,6 +30,10 @@ Route::group(['middleware' => 'auth:sanctum'], function () {
 
     Route::apiResource('groups', App\Http\Controllers\Api\GroupController::class);
 
+    // Group items route
+    Route::get('/groups/{group}/items', [App\Http\Controllers\Api\GroupController::class, 'items'])
+        ->name('api.groups.items');
+
     Route::apiResource('units', App\Http\Controllers\Api\UnitController::class);
 
     Route::apiResource('recipes', App\Http\Controllers\Api\RecipeController::class);

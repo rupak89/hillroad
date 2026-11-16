@@ -3,28 +3,28 @@
 namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
-use App\Services\SupplierService;
 use App\Http\Requests\SupplierRequest;
+use App\Services\SupplierService;
 use Illuminate\Http\Request;
 
 class SupplierController extends Controller
 {
+    public function __construct(private SupplierService $supplierService) {}
 
-    function __construct(private SupplierService $supplierService)
-    {
-
-    }
     /**
      * Display a listing of the resource.
      */
     public function index(Request $request)
     {
-        $perPage = $request->get('per_page', 10);
-        $suppliers = $this->supplierService->getSuppliers($perPage);
+        $validated = $request->validate([
+            'per_page' => 'sometimes|integer|min:1|max:100',
+        ]);
+
+        $suppliers = $this->supplierService->getSuppliers((int) ($validated['per_page'] ?? 10));
 
         return response()->json([
             'message' => 'Suppliers list',
-            'suppliers' => $suppliers
+            'suppliers' => $suppliers,
         ]);
     }
 
@@ -48,7 +48,7 @@ class SupplierController extends Controller
     {
         $supplier = $this->supplierService->getSupplier($id);
 
-        if (!$supplier) {
+        if (! $supplier) {
             return response()->json([
                 'message' => 'Supplier not found',
             ], 404);

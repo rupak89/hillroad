@@ -19,5 +19,13 @@ export default defineConfig({
     server: {
         host: '127.0.0.1',
         port: 5173,
+        proxy: {
+            // Keep the browser on one origin during development so Sanctum
+            // session cookies work without CORS.
+            '/api': 'http://127.0.0.1:8000',
+            '/sanctum': 'http://127.0.0.1:8000',
+            '/login': 'http://127.0.0.1:8000',
+            '/logout': 'http://127.0.0.1:8000',
+        },
     },
 });
