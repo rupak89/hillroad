@@ -5,9 +5,15 @@ namespace App\DTOs;
 class CreateRecipeDTO extends BaseDTO
 {
     public string $recipe_name;
+
     public ?string $instruction = null;
+
     public ?string $thumbnail = null;
+
+    public int $servings = 1;
+
     public array $ingredients = [];
+
     public array $sub_recipes = [];
 
     protected function rules(): array
@@ -16,6 +22,7 @@ class CreateRecipeDTO extends BaseDTO
             'recipe_name' => 'required|string|max:255',
             'instruction' => 'nullable|string',
             'thumbnail' => 'nullable|string|max:500',
+            'servings' => 'nullable|integer|min:1|max:1000',
             'ingredients' => 'nullable|array',
             'ingredients.*.item_id' => 'required_with:ingredients.*|integer|exists:items,id',
             'ingredients.*.unit_id' => 'nullable|integer|exists:units,id',
@@ -31,6 +38,7 @@ class CreateRecipeDTO extends BaseDTO
         $this->recipe_name = $data['recipe_name'];
         $this->instruction = $data['instruction'] ?? null;
         $this->thumbnail = $data['thumbnail'] ?? null;
+        $this->servings = (int) ($data['servings'] ?? 1);
         $this->ingredients = $data['ingredients'] ?? [];
         $this->sub_recipes = $data['sub_recipes'] ?? [];
     }
@@ -41,6 +49,7 @@ class CreateRecipeDTO extends BaseDTO
             'recipe_name' => $this->recipe_name,
             'instruction' => $this->instruction,
             'thumbnail' => $this->thumbnail,
+            'servings' => $this->servings,
             'ingredients' => $this->ingredients,
             'sub_recipes' => $this->sub_recipes,
         ];

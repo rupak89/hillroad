@@ -2,29 +2,26 @@
 
 namespace App\Services;
 
-use App\Models\Recipe;
 use App\DTOs\CreateRecipeDTO;
 use App\DTOs\UpdateRecipeDTO;
-use Illuminate\Support\Facades\DB;
-use Illuminate\Support\Facades\Log;
-use Illuminate\Database\Eloquent\ModelNotFoundException;
+use App\Models\Recipe;
 use Illuminate\Contracts\Pagination\LengthAwarePaginator;
 use Illuminate\Database\Eloquent\Collection;
+use Illuminate\Database\Eloquent\ModelNotFoundException;
+use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Log;
 
 class RecipeService
 {
     /**
      * Get paginated list of recipes.
-     *
-     * @param int $perPage
-     * @return LengthAwarePaginator
      */
     public function getRecipes(int $perPage = 10): LengthAwarePaginator
     {
         return Recipe::with([
-                'items:id,item_name',
-                'subRecipes:id,recipe_name'
-            ])
+            'items:id,item_name',
+            'subRecipes:id,recipe_name',
+        ])
             ->orderBy('created_at', 'desc')
             ->paginate($perPage);
     }
@@ -32,8 +29,6 @@ class RecipeService
     /**
      * Create a new recipe.
      *
-     * @param array $data
-     * @return Recipe
      * @throws \Illuminate\Validation\ValidationException
      * @throws \InvalidArgumentException
      * @throws \Exception
@@ -49,10 +44,11 @@ class RecipeService
                     'recipe_name' => $dto->recipe_name,
                     'instruction' => $dto->instruction,
                     'thumbnail' => $dto->thumbnail,
+                    'servings' => $dto->servings,
                 ]);
 
                 // Check for cyclic dependencies in sub-recipes
-                if (!empty($dto->sub_recipes)) {
+                if (! empty($dto->sub_recipes)) {
                     $subRecipeIds = array_column($dto->sub_recipes, 'child_recipe_id');
                     if ($this->wouldCreateCycle($recipe->id, $subRecipeIds)) {
                         throw new \InvalidArgumentException('Cannot add sub-recipes: would create a cyclic dependency or self-reference');
@@ -60,10 +56,10 @@ class RecipeService
                 }
 
                 // Attach ingredients in batch
-                if (!empty($dto->ingredients)) {
+                if (! empty($dto->ingredients)) {
                     $ingredientAttachData = [];
                     foreach ($dto->ingredients as $ingredient) {
-                        if (!empty($ingredient['item_id']) && !empty($ingredient['quantity'])) {
+                        if (! empty($ingredient['item_id']) && ! empty($ingredient['quantity'])) {
                             $ingredientAttachData[$ingredient['item_id']] = [
                                 'unit_id' => $ingredient['unit_id'] ?? null,
                                 'quantity' => $ingredient['quantity'],
@@ -72,16 +68,16 @@ class RecipeService
                             ];
                         }
                     }
-                    if (!empty($ingredientAttachData)) {
+                    if (! empty($ingredientAttachData)) {
                         $recipe->items()->attach($ingredientAttachData);
                     }
                 }
 
                 // Attach sub-recipes in batch
-                if (!empty($dto->sub_recipes)) {
+                if (! empty($dto->sub_recipes)) {
                     $subRecipeAttachData = [];
                     foreach ($dto->sub_recipes as $subRecipe) {
-                        if (!empty($subRecipe['child_recipe_id']) && !empty($subRecipe['quantity'])) {
+                        if (! empty($subRecipe['child_recipe_id']) && ! empty($subRecipe['quantity'])) {
                             $subRecipeAttachData[$subRecipe['child_recipe_id']] = [
                                 'quantity' => $subRecipe['quantity'],
                                 'created_at' => now(),
@@ -89,7 +85,7 @@ class RecipeService
                             ];
                         }
                     }
-                    if (!empty($subRecipeAttachData)) {
+                    if (! empty($subRecipeAttachData)) {
                         $recipe->subRecipes()->attach($subRecipeAttachData);
                     }
                 }
@@ -101,25 +97,24 @@ class RecipeService
                     'items.defaultBrand',
                     'items.group',
                     'subRecipes.items',
-                    'subRecipes.subRecipes'
+                    'subRecipes.subRecipes',
                 ]);
             });
         } catch (\Exception $e) {
-            Log::error('Error creating recipe: ' . $e->getMessage(), [
+            Log::error('Error creating recipe: '.$e->getMessage(), [
                 'data' => $data,
-                'exception' => $e
+                'exception' => $e,
             ]);
             throw $e;
         } finally {
             $this->clearRecipeCache();
+            $this->clearCostCache();
         }
     }
 
     /**
      * Get a single recipe by ID.
      *
-     * @param int $id
-     * @return Recipe
      * @throws ModelNotFoundException
      */
     public function getRecipe(int $id): Recipe
@@ -132,10 +127,10 @@ class RecipeService
                 'items.defaultBrand',
                 'items.group',
                 'subRecipes.items',
-                'subRecipes.subRecipes'
+                'subRecipes.subRecipes',
             ])->findOrFail($id);
         } catch (ModelNotFoundException $e) {
-            Log::error('Recipe not found: ' . $id);
+            Log::error('Recipe not found: '.$id);
             throw $e;
         }
     }
@@ -143,9 +138,6 @@ class RecipeService
     /**
      * Update a recipe.
      *
-     * @param int $id
-     * @param array $data
-     * @return Recipe
      * @throws \Illuminate\Validation\ValidationException
      * @throws ModelNotFoundException
      * @throws \InvalidArgumentException
@@ -159,35 +151,40 @@ class RecipeService
             return DB::transaction(function () use ($id, $dto) {
                 $recipe = Recipe::findOrFail($id);
 
-                // Check for cyclic dependencies in sub-recipes
-                if (!empty($dto->sub_recipes)) {
+                // Check for cyclic dependencies only when sub-recipes are being changed.
+                if ($dto->hasSubRecipes && ! empty($dto->sub_recipes)) {
                     $subRecipeIds = array_column($dto->sub_recipes, 'child_recipe_id');
                     if ($this->wouldCreateCycle($id, $subRecipeIds)) {
                         throw new \InvalidArgumentException('Cannot update sub-recipes: would create a cyclic dependency or self-reference');
                     }
                 }
 
-                // Update the recipe basic fields
+                // Update the recipe basic fields. Nullable fields are only
+                // written when the request actually contained the key, so a
+                // partial update cannot clear them by accident.
                 $updateData = [];
                 if ($dto->recipe_name !== null) {
                     $updateData['recipe_name'] = $dto->recipe_name;
                 }
-                if ($dto->instruction !== null) {
+                if ($dto->hasInstruction) {
                     $updateData['instruction'] = $dto->instruction;
                 }
-                if ($dto->thumbnail !== null) {
+                if ($dto->hasThumbnail) {
                     $updateData['thumbnail'] = $dto->thumbnail;
                 }
+                if ($dto->servings !== null) {
+                    $updateData['servings'] = $dto->servings;
+                }
 
-                if (!empty($updateData)) {
+                if (! empty($updateData)) {
                     $recipe->update($updateData);
                 }
 
-                // Sync ingredients
-                $ingredientData = [];
-                if (!empty($dto->ingredients)) {
+                // Only replace relationships that were explicitly supplied.
+                if ($dto->hasIngredients) {
+                    $ingredientData = [];
                     foreach ($dto->ingredients as $ingredient) {
-                        if (!empty($ingredient['item_id']) && !empty($ingredient['quantity'])) {
+                        if (! empty($ingredient['item_id']) && ! empty($ingredient['quantity'])) {
                             $ingredientData[$ingredient['item_id']] = [
                                 'unit_id' => $ingredient['unit_id'] ?? null,
                                 'quantity' => $ingredient['quantity'],
@@ -196,14 +193,13 @@ class RecipeService
                             ];
                         }
                     }
+                    $recipe->items()->sync($ingredientData);
                 }
-                $recipe->items()->sync($ingredientData);
 
-                // Sync sub-recipes
-                $subRecipeData = [];
-                if (!empty($dto->sub_recipes)) {
+                if ($dto->hasSubRecipes) {
+                    $subRecipeData = [];
                     foreach ($dto->sub_recipes as $subRecipe) {
-                        if (!empty($subRecipe['child_recipe_id']) && !empty($subRecipe['quantity'])) {
+                        if (! empty($subRecipe['child_recipe_id']) && ! empty($subRecipe['quantity'])) {
                             $subRecipeData[$subRecipe['child_recipe_id']] = [
                                 'quantity' => $subRecipe['quantity'],
                                 'created_at' => now(),
@@ -211,8 +207,8 @@ class RecipeService
                             ];
                         }
                     }
+                    $recipe->subRecipes()->sync($subRecipeData);
                 }
-                $recipe->subRecipes()->sync($subRecipeData);
 
                 return $recipe->fresh([
                     'items.orderingUnit',
@@ -221,29 +217,28 @@ class RecipeService
                     'items.defaultBrand',
                     'items.group',
                     'subRecipes.items',
-                    'subRecipes.subRecipes'
+                    'subRecipes.subRecipes',
                 ]);
             });
         } catch (ModelNotFoundException $e) {
-            Log::error('Recipe not found for update: ' . $id);
+            Log::error('Recipe not found for update: '.$id);
             throw $e;
         } catch (\Exception $e) {
-            Log::error('Error updating recipe: ' . $e->getMessage(), [
+            Log::error('Error updating recipe: '.$e->getMessage(), [
                 'id' => $id,
                 'data' => $data,
-                'exception' => $e
+                'exception' => $e,
             ]);
             throw $e;
         } finally {
             $this->clearRecipeCache();
+            $this->clearCostCache();
         }
     }
 
     /**
      * Delete a recipe.
      *
-     * @param int $id
-     * @return bool
      * @throws ModelNotFoundException
      * @throws \Exception
      */
@@ -252,25 +247,26 @@ class RecipeService
         try {
             return DB::transaction(function () use ($id) {
                 $recipe = Recipe::findOrFail($id);
+
                 return $recipe->delete();
             });
         } catch (ModelNotFoundException $e) {
-            Log::error('Recipe not found for deletion: ' . $id);
+            Log::error('Recipe not found for deletion: '.$id);
             throw $e;
         } catch (\Exception $e) {
-            Log::error('Error deleting recipe: ' . $e->getMessage(), [
+            Log::error('Error deleting recipe: '.$e->getMessage(), [
                 'id' => $id,
-                'exception' => $e
+                'exception' => $e,
             ]);
             throw $e;
+        } finally {
+            $this->clearRecipeCache();
+            $this->clearCostCache();
         }
     }
 
     /**
      * Get all recipes for dropdown (excluding the current recipe if provided)
-     *
-     * @param int|null $excludeId
-     * @return Collection
      */
     public function getRecipesForDropdown(?int $excludeId = null): Collection
     {
@@ -285,10 +281,6 @@ class RecipeService
 
     /**
      * Check if adding sub-recipes would create a cycle or self-reference
-     *
-     * @param int $recipeId
-     * @param array $subRecipeIds
-     * @return bool
      */
     private function wouldCreateCycle(int $recipeId, array $subRecipeIds): bool
     {
@@ -322,9 +314,7 @@ class RecipeService
     /**
      * Pre-load all potentially needed recipes to avoid N+1 queries
      *
-     * @param \Illuminate\Support\Collection $initialIds
-     * @param int $targetRecipeId
-     * @return void
+     * @param  \Illuminate\Support\Collection  $initialIds
      */
     private function preloadRecipesForCycleCheck($initialIds, int $targetRecipeId): void
     {
@@ -360,18 +350,11 @@ class RecipeService
 
     /**
      * Cache for pre-loaded recipes to avoid N+1 queries
-     *
-     * @var array
      */
     private array $recipeCache = [];
 
     /**
      * Recursively check if a sub-recipe has a cyclic dependency
-     *
-     * @param int $currentRecipeId
-     * @param int $targetRecipeId
-     * @param array $visited
-     * @return bool
      */
     private function hasCyclicDependency(int $currentRecipeId, int $targetRecipeId, array &$visited): bool
     {
@@ -406,22 +389,17 @@ class RecipeService
 
     /**
      * Public method to validate if sub-recipes would create cycles
-     *
-     * @param int $recipeId
-     * @param array $subRecipeIds
-     * @return bool
      */
     public function validateSubRecipes(int $recipeId, array $subRecipeIds): bool
     {
-        $result = !$this->wouldCreateCycle($recipeId, $subRecipeIds);
+        $result = ! $this->wouldCreateCycle($recipeId, $subRecipeIds);
         $this->clearRecipeCache();
+
         return $result;
     }
 
     /**
      * Clear the recipe cache to free memory
-     *
-     * @return void
      */
     private function clearRecipeCache(): void
     {
@@ -429,9 +407,18 @@ class RecipeService
     }
 
     /**
+     * Drop memoised costs after a recipe change.
+     */
+    private function clearCostCache(): void
+    {
+        app(RecipeCostService::class)->forget();
+    }
+
+    /**
      * Fetching recipes
-     * @param array<int> $ids
-     * @param array<string> $columns
+     *
+     * @param  array<int>  $ids
+     * @param  array<string>  $columns
      */
     protected function fetchRecipesWithChildren(array $ids, array $columns = ['id']): Collection
     {
