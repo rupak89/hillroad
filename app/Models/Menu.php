@@ -3,8 +3,8 @@
 namespace App\Models;
 
 use Illuminate\Database\Eloquent\Model;
-use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Database\Eloquent\Relations\HasMany;
 
 class Menu extends Model
 {
@@ -38,78 +38,93 @@ class Menu extends Model
     }
 
     /**
-     * Calculate the total cost of the menu (per guest)
+     * Calculate the total base cost of the menu, per guest.
      */
-    public function getTotalCostAttribute()
+    public function getTotalCostAttribute(): float
     {
-        // Avoid loading relationships if not already loaded to prevent memory issues
-        if (!$this->relationLoaded('segments')) {
-            return 0;
-        }
+        $this->loadMissing(['segments.items.recipe']);
 
-        return $this->segments->sum(function ($segment) {
-            return $segment->total_cost;
-        });
+        return round((float) $this->segments->sum(fn ($segment) => $segment->total_cost), 2);
     }
 
     /**
-     * Calculate cost per person
+     * The base cost for a single guest.
      */
-    public function getCostPerPersonAttribute()
+    public function getCostPerGuestAttribute(): float
     {
-        if ($this->target_head_count <= 0) {
-            return 0;
-        }
+        return $this->total_cost;
+    }
 
-        return $this->total_cost / $this->target_head_count;
+    /**
+     * Kept for existing consumers; cost per person is the same as cost per guest.
+     */
+    public function getCostPerPersonAttribute(): float
+    {
+        return $this->cost_per_guest;
+    }
+
+    /**
+     * The base cost of the menu for every guest.
+     */
+    public function getTotalEventCostAttribute(): float
+    {
+        return round($this->cost_per_guest * max(0, (int) $this->target_head_count), 2);
     }
 
     /**
      * Get the count of segments
      */
-    public function getSegmentsCountAttribute()
+    public function getSegmentsCountAttribute(): int
     {
-        return $this->segments->count();
+        return $this->segments()->count();
     }
 
     /**
-     * Calculate the selling price per person with markup
+     * Calculate the selling price per guest with markup
      */
-    public function getSellingPricePerPersonAttribute()
+    public function getSellingPricePerPersonAttribute(): float
     {
-        $baseCost = $this->total_cost;
-        if ($this->markup_percentage > 0) {
-            $markup = $baseCost * ($this->markup_percentage / 100);
-            return $baseCost + $markup;
-        }
-        return $baseCost;
+        return round($this->cost_per_guest * (1 + ((float) $this->markup_percentage / 100)), 2);
+    }
+
+    /**
+     * Alias with unambiguous naming.
+     */
+    public function getSellingPricePerGuestAttribute(): float
+    {
+        return $this->selling_price_per_person;
     }
 
     /**
      * Calculate the total selling price for all guests with markup
      */
-    public function getTotalSellingPriceAttribute()
+    public function getTotalSellingPriceAttribute(): float
     {
-        return $this->selling_price_per_person * $this->target_head_count;
+        return round($this->selling_price_per_guest * max(0, (int) $this->target_head_count), 2);
     }
 
     /**
-     * Calculate the markup amount per person
+     * Calculate the markup amount per guest.
      */
-    public function getMarkupAmountPerPersonAttribute()
+    public function getMarkupAmountPerPersonAttribute(): float
     {
-        if ($this->markup_percentage > 0) {
-            return $this->total_cost * ($this->markup_percentage / 100);
-        }
-        return 0;
+        return round($this->cost_per_guest * ((float) $this->markup_percentage / 100), 2);
+    }
+
+    /**
+     * Alias with unambiguous naming.
+     */
+    public function getMarkupAmountPerGuestAttribute(): float
+    {
+        return $this->markup_amount_per_person;
     }
 
     /**
      * Calculate the total markup amount for all guests
      */
-    public function getTotalMarkupAmountAttribute()
+    public function getTotalMarkupAmountAttribute(): float
     {
-        return $this->markup_amount_per_person * $this->target_head_count;
+        return round($this->markup_amount_per_guest * max(0, (int) $this->target_head_count), 2);
     }
 
     /**

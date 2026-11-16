@@ -28,7 +28,7 @@
             <strong>Total Cost: {{ costData.total_cost_formatted }}</strong>
           </div>
           <div class="column" v-if="quantity > 1">
-            <strong>Cost per Unit: {{ costData.cost_per_serving_formatted }}</strong>
+            <strong>Cost per Serving: {{ costData.cost_per_serving_formatted }}</strong>
           </div>
         </div>
 

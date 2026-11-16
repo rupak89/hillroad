@@ -2,11 +2,9 @@
 
 namespace App\Models;
 
-use App\Services\RecipeCostService;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
-use Illuminate\Support\Facades\Log;
 
 class MenuSegment extends Model
 {
@@ -39,38 +37,17 @@ class MenuSegment extends Model
     /**
      * Calculate the total cost of this segment (per guest)
      */
-    public function getTotalCostAttribute()
+    public function getTotalCostAttribute(): float
     {
-        // Avoid loading relationships if not already loaded to prevent memory issues
-        if (!$this->relationLoaded('items')) {
-            return 0;
-        }
+        $this->loadMissing('items.recipe');
 
-        $recipeCostService = app(RecipeCostService::class);
-
-        return $this->items->sum(function ($item) use ($recipeCostService) {
-            $recipe = $item->recipe;
-            if (!$recipe) return 0;
-
-            try {
-                // Calculate recipe cost using the service
-                $costData = $recipeCostService->calculateRecipeCost($recipe);
-                $recipeCost = $costData['total_cost'] ?? 0;
-
-                // Always calculate per guest cost
-                return $recipeCost * $item->quantity;
-            } catch (\Exception $e) {
-                // If cost calculation fails, return 0
-                Log::warning("Failed to calculate cost for recipe {$recipe->id} in menu segment {$this->id}: " . $e->getMessage());
-                return 0;
-            }
-        });
+        return round((float) $this->items->sum(fn ($item) => $item->total_cost), 2);
     }
 
     /**
      * Get the count of items in this segment
      */
-    public function getItemsCountAttribute()
+    public function getItemsCountAttribute(): int
     {
         return $this->items()->count();
     }

@@ -2,9 +2,9 @@
 
 namespace App\Models;
 
+use App\Services\RecipeCostService;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
-use App\Services\RecipeCostService;
 use Illuminate\Support\Facades\Log;
 
 class MenuSegmentItem extends Model
@@ -39,50 +39,52 @@ class MenuSegmentItem extends Model
     }
 
     /**
-     * Calculate the total cost for this item (per guest)
+     * Calculate the total cost for this item (per guest).
+     *
+     * Menus are costed per portion, so use the recipe's cost per serving
+     * rather than the cost of the entire recipe.
      */
-    public function getTotalCostAttribute()
+    public function getTotalCostAttribute(): float
     {
-        // Avoid loading relationships if not already loaded to prevent memory issues
-        if (!$this->relationLoaded('recipe')) {
+        $this->loadMissing('recipe');
+
+        $recipe = $this->recipe;
+        if (! $recipe) {
             return 0;
         }
 
-        $recipe = $this->recipe;
-        if (!$recipe) return 0;
-
         try {
-            // Use the RecipeCostService to calculate the actual recipe cost
-            $recipeCostService = app(RecipeCostService::class);
-            $costData = $recipeCostService->calculateRecipeCost($recipe);
-            $recipeCost = $costData['total_cost'] ?? 0;
+            $costData = app(RecipeCostService::class)->calculateRecipeCost($recipe);
+            $costPerServing = $costData['cost_per_serving'] ?? 0;
 
-            // Always calculate per guest cost
-            return $recipeCost * $this->quantity;
-        } catch (\Exception $e) {
+            return round($costPerServing * (float) $this->quantity, 2);
+        } catch (\Throwable $e) {
             Log::error('Error calculating menu item cost', [
                 'item_id' => $this->id,
                 'recipe_id' => $recipe->id,
-                'error' => $e->getMessage()
+                'error' => $e->getMessage(),
             ]);
+
             return 0;
         }
     }
 
     /**
-     * Get cost per unit
+     * Get the cost of one serving of the recipe.
      */
-    public function getCostPerUnitAttribute()
+    public function getCostPerUnitAttribute(): float
     {
-        if (!$this->relationLoaded('recipe') || !$this->recipe) {
+        $this->loadMissing('recipe');
+
+        if (! $this->recipe) {
             return 0;
         }
 
         try {
-            $recipeCostService = app(RecipeCostService::class);
-            $costData = $recipeCostService->calculateRecipeCost($this->recipe);
-            return $costData['total_cost'] ?? 0;
-        } catch (\Exception $e) {
+            $costData = app(RecipeCostService::class)->calculateRecipeCost($this->recipe);
+
+            return (float) ($costData['cost_per_serving'] ?? 0);
+        } catch (\Throwable $e) {
             return 0;
         }
     }
@@ -90,7 +92,7 @@ class MenuSegmentItem extends Model
     /**
      * Get formatted quantity
      */
-    public function getFormattedQuantityAttribute()
+    public function getFormattedQuantityAttribute(): string
     {
         return "{$this->quantity} per guest";
     }

@@ -7,10 +7,11 @@ use App\DTOs\Menu\UpdateMenuDTO;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\Menu\StoreMenuRequest;
 use App\Http\Requests\Menu\UpdateMenuRequest;
+use App\Http\Resources\MenuResource;
 use App\Models\Menu;
 use App\Services\MenuService;
-use Illuminate\Http\Request;
 use Illuminate\Http\JsonResponse;
+use Illuminate\Http\Request;
 
 class MenuController extends Controller
 {
@@ -19,23 +20,21 @@ class MenuController extends Controller
     ) {}
 
     /**
-     * Check if the user owns the menu
-     */
-    private function checkOwnership(Menu $menu, Request $request): ?JsonResponse
-    {
-        if ($menu->user_id !== $request->user()->id) {
-            return response()->json(['error' => 'Unauthorized'], 403);
-        }
-        return null;
-    }
-
-    /**
-     * Display a listing of the resource.
+     * Display a listing of the user's menus.
      */
     public function index(Request $request): JsonResponse
     {
-        $perPage = $request->get('per_page', 10);
-        $menus = $this->menuService->getMenusForUser($request->user(), $perPage);
+        $validated = $request->validate([
+            'per_page' => 'sometimes|integer|min:1|max:100',
+        ]);
+
+        $menus = $this->menuService->getMenusForUser(
+            $request->user(),
+            (int) ($validated['per_page'] ?? 10)
+        );
+
+        // Keep the paginator shape while serialising each menu explicitly.
+        $menus->through(fn (Menu $menu) => (new MenuResource($menu))->resolve());
 
         return response()->json([
             'message' => 'List of menus',
@@ -44,7 +43,7 @@ class MenuController extends Controller
     }
 
     /**
-     * Store a newly created resource in storage.
+     * Store a newly created menu.
      */
     public function store(StoreMenuRequest $request): JsonResponse
     {
@@ -53,53 +52,47 @@ class MenuController extends Controller
 
         return response()->json([
             'message' => 'Menu created successfully',
-            'menu' => $menu,
+            'menu' => new MenuResource($menu),
         ], 201);
     }
 
     /**
-     * Display the specified resource.
+     * Display the specified menu.
      */
-    public function show(Request $request, Menu $menu): JsonResponse
+    public function show(Menu $menu): JsonResponse
     {
-        if ($error = $this->checkOwnership($menu, $request)) {
-            return $error;
-        }
+        $this->authorize('view', $menu);
 
         $menu = $this->menuService->getMenuWithRelations($menu);
 
         return response()->json([
             'message' => 'Menu details',
-            'menu' => $menu,
+            'menu' => new MenuResource($menu),
         ]);
     }
 
     /**
-     * Update the specified resource in storage.
+     * Update the specified menu.
      */
     public function update(UpdateMenuRequest $request, Menu $menu): JsonResponse
     {
-        if ($error = $this->checkOwnership($menu, $request)) {
-            return $error;
-        }
+        $this->authorize('update', $menu);
 
         $dto = UpdateMenuDTO::fromRequest($request->validated());
         $menu = $this->menuService->updateMenu($menu, $dto);
 
         return response()->json([
             'message' => 'Menu updated successfully',
-            'menu' => $menu,
+            'menu' => new MenuResource($menu),
         ]);
     }
 
     /**
-     * Remove the specified resource from storage.
+     * Remove the specified menu.
      */
-    public function destroy(Request $request, Menu $menu): JsonResponse
+    public function destroy(Menu $menu): JsonResponse
     {
-        if ($error = $this->checkOwnership($menu, $request)) {
-            return $error;
-        }
+        $this->authorize('delete', $menu);
 
         $menu->delete();
 
@@ -109,30 +102,26 @@ class MenuController extends Controller
     }
 
     /**
-     * Duplicate a menu
+     * Duplicate a menu.
      */
-    public function duplicate(Request $request, Menu $menu): JsonResponse
+    public function duplicate(Menu $menu): JsonResponse
     {
-        if ($error = $this->checkOwnership($menu, $request)) {
-            return $error;
-        }
+        $this->authorize('duplicate', $menu);
 
         $duplicatedMenu = $this->menuService->duplicateMenu($menu);
 
         return response()->json([
             'message' => 'Menu duplicated successfully',
-            'menu' => $duplicatedMenu,
+            'menu' => new MenuResource($duplicatedMenu),
         ], 201);
     }
 
     /**
-     * Get menu cost breakdown
+     * Get menu cost breakdown.
      */
-    public function costBreakdown(Request $request, Menu $menu): JsonResponse
+    public function costBreakdown(Menu $menu): JsonResponse
     {
-        if ($error = $this->checkOwnership($menu, $request)) {
-            return $error;
-        }
+        $this->authorize('viewCostBreakdown', $menu);
 
         $breakdown = $this->menuService->getCostBreakdown($menu);
 
@@ -143,13 +132,11 @@ class MenuController extends Controller
     }
 
     /**
-     * Get customer-friendly printable menu
+     * Get customer-friendly printable menu.
      */
-    public function printableMenu(Request $request, Menu $menu): JsonResponse
+    public function printableMenu(Menu $menu): JsonResponse
     {
-        if ($error = $this->checkOwnership($menu, $request)) {
-            return $error;
-        }
+        $this->authorize('print', $menu);
 
         $printableMenu = $this->menuService->getPrintableMenu($menu);
 

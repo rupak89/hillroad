@@ -12,7 +12,7 @@
           Menu Management
         </h1>
         <router-link to="/menus/add" class="button light">
-          <button class="button light">Add Menu</button>
+          Add Menu
         </router-link>
       </div>
     </section>
@@ -44,8 +44,8 @@
                 <th>Menu Name</th>
                 <th>Head Count</th>
                 <th>Segments</th>
+                <th>Cost / Guest</th>
                 <th>Total Cost</th>
-                <th>Cost per Person</th>
                 <th></th>
               </tr>
             </thead>
@@ -64,20 +64,20 @@
                 </td>
                 <td data-label="Head Count">{{ menu.target_head_count }} guests</td>
                 <td data-label="Segments">{{ menu.segments_count || menu.segments?.length || 0 }} segments</td>
-                <td data-label="Total Cost">
-                  <div v-if="menu.total_cost">
-                    <strong>${{ parseFloat(menu.total_cost).toFixed(2) }}</strong>
+                <td data-label="Cost / Guest">
+                  <div v-if="menu.cost_per_guest">
+                    <strong>${{ formatMoney(menu.cost_per_guest) }}</strong>
                   </div>
                   <div v-else class="has-text-grey">
-                    N/A
+                    {{ menu.cost_per_guest === 0 ? '$0.00' : 'N/A' }}
                   </div>
                 </td>
-                <td data-label="Cost per Person">
-                  <div v-if="menu.cost_per_person">
-                    <strong>${{ parseFloat(menu.cost_per_person).toFixed(2) }}</strong>
+                <td data-label="Total Cost">
+                  <div v-if="menu.total_event_cost">
+                    <strong>${{ formatMoney(menu.total_event_cost) }}</strong>
                   </div>
                   <div v-else class="has-text-grey">
-                    N/A
+                    {{ menu.total_event_cost === 0 ? '$0.00' : 'N/A' }}
                   </div>
                 </td>
                 <td class="actions-cell">
@@ -144,9 +144,9 @@
                     <span class="icon"><i class="mdi mdi-account-group"></i></span>
                     {{ menu.target_head_count }} guests
                   </div>
-                  <div v-if="menu.cost_per_person">
+                  <div v-if="menu.cost_per_guest !== undefined && menu.cost_per_guest !== null">
                     <span class="icon"><i class="mdi mdi-currency-usd"></i></span>
-                    ${{ parseFloat(menu.cost_per_person).toFixed(2) }}/person
+                    ${{ formatMoney(menu.cost_per_guest) }}/guest
                   </div>
                 </div>
               </router-link>
@@ -218,32 +218,56 @@
                   </div>
                   <div class="level-right">
                     <div class="has-text-right">
-                      <div>${{ parseFloat(item.cost_per_unit).toFixed(2) }} per unit</div>
-                      <strong>${{ parseFloat(item.total_cost).toFixed(2) }}</strong>
+                      <div>${{ formatMoney(item.cost_per_unit) }} per serving</div>
+                      <strong>${{ formatMoney(item.total_cost) }} / guest</strong>
                     </div>
                   </div>
                 </div>
               </div>
               <div class="has-text-right">
-                <strong>Segment Total: ${{ parseFloat(segment.total_cost).toFixed(2) }}</strong>
+                <strong>Segment Total: ${{ formatMoney(segment.total_cost) }} / guest</strong>
               </div>
             </div>
 
             <div class="box has-background-light">
-                            <div class="level">
+              <div class="level">
                 <div class="level-left">
-                  Total Cost:
+                  Base cost / guest:
                 </div>
                 <div class="level-right">
-                  <strong>${{ parseFloat(costBreakdown.totals.total_cost).toFixed(2) }}</strong>
+                  <strong>${{ formatMoney(costBreakdown.totals.cost_per_guest) }}</strong>
                 </div>
               </div>
               <div class="level">
                 <div class="level-left">
-                  <strong>Cost per Person:</strong>
+                  Markup / guest:
                 </div>
                 <div class="level-right">
-                  <strong class="has-text-primary">${{ parseFloat(costBreakdown.totals.cost_per_person).toFixed(2) }}</strong>
+                  <strong>${{ formatMoney(costBreakdown.totals.markup_amount_per_guest) }}</strong>
+                </div>
+              </div>
+              <div class="level">
+                <div class="level-left">
+                  <strong>Selling price / guest:</strong>
+                </div>
+                <div class="level-right">
+                  <strong class="has-text-primary">${{ formatMoney(costBreakdown.totals.selling_price_per_guest) }}</strong>
+                </div>
+              </div>
+              <div class="level">
+                <div class="level-left">
+                  <strong>Total base cost ({{ costBreakdown.target_head_count }} guests):</strong>
+                </div>
+                <div class="level-right">
+                  <strong>${{ formatMoney(costBreakdown.totals.total_event_cost) }}</strong>
+                </div>
+              </div>
+              <div class="level">
+                <div class="level-left">
+                  <strong>Total selling price:</strong>
+                </div>
+                <div class="level-right">
+                  <strong class="has-text-success">${{ formatMoney(costBreakdown.totals.total_selling_price) }}</strong>
                 </div>
               </div>
             </div>
@@ -284,6 +308,11 @@ const showCostModal = ref(false)
 const costBreakdown = ref(null)
 
 // Methods
+const formatMoney = (value) => {
+  const number = Number(value)
+  return Number.isFinite(number) ? number.toFixed(2) : '0.00'
+}
+
 const checkForSuccessMessage = () => {
   if (route.query.success && route.query.menu) {
     const action = route.query.success === 'created' ? 'created' : 'updated'

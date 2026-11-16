@@ -6,7 +6,6 @@ use App\DTOs\Menu\CreateMenuDTO;
 use App\DTOs\Menu\UpdateMenuDTO;
 use App\Models\Menu;
 use App\Models\User;
-use Illuminate\Database\Eloquent\Collection;
 use Illuminate\Pagination\LengthAwarePaginator;
 
 class MenuService
@@ -17,14 +16,14 @@ class MenuService
     public function getMenusForUser(User $user, int $perPage = 10): LengthAwarePaginator
     {
         return Menu::with([
-                'segments' => function($query) {
-                    $query->orderBy('sort_order');
-                },
-                'segments.items' => function($query) {
-                    $query->orderBy('sort_order');
-                },
-                'segments.items.recipe:id,recipe_name'
-            ])
+            'segments' => function ($query) {
+                $query->orderBy('sort_order');
+            },
+            'segments.items' => function ($query) {
+                $query->orderBy('sort_order');
+            },
+            'segments.items.recipe:id,recipe_name,servings',
+        ])
             ->where('user_id', $user->id)
             ->orderBy('created_at', 'desc')
             ->paginate($perPage);
@@ -131,14 +130,14 @@ class MenuService
 
             // Delete items that were removed
             $itemsToDelete = array_diff($existingItemIds, $submittedItemIds);
-            if (!empty($itemsToDelete)) {
+            if (! empty($itemsToDelete)) {
                 $segment->items()->whereIn('id', $itemsToDelete)->delete();
             }
         }
 
         // Delete segments that were removed
         $segmentsToDelete = array_diff($existingSegmentIds, $submittedSegmentIds);
-        if (!empty($segmentsToDelete)) {
+        if (! empty($segmentsToDelete)) {
             $menu->segments()->whereIn('id', $segmentsToDelete)->delete();
         }
 
@@ -159,7 +158,7 @@ class MenuService
     public function duplicateMenu(Menu $menu): Menu
     {
         $duplicatedMenu = $menu->replicate();
-        $duplicatedMenu->name = $menu->name . ' (Copy)';
+        $duplicatedMenu->name = $menu->name.' (Copy)';
         $duplicatedMenu->save();
 
         // Duplicate segments and items
@@ -185,6 +184,9 @@ class MenuService
     {
         $menu = $this->loadMenuRelations($menu);
 
+        $costPerGuest = round($menu->cost_per_guest, 2);
+        $totalEventCost = round($menu->total_event_cost, 2);
+
         $breakdown = [
             'menu_id' => $menu->id,
             'menu_name' => $menu->name,
@@ -192,21 +194,29 @@ class MenuService
             'markup_percentage' => $menu->markup_percentage,
             'segments' => [],
             'totals' => [
-                'base_cost' => $menu->total_cost,
-                'cost_per_person' => $menu->cost_per_person,
-                'markup_amount_per_person' => $menu->markup_amount_per_person,
-                'selling_price_per_person' => $menu->selling_price_per_person,
-                'total_markup_amount' => $menu->total_markup_amount,
-                'total_selling_price' => $menu->total_selling_price,
-            ]
+                // Per-guest values.
+                'base_cost' => $costPerGuest,
+                'cost_per_guest' => $costPerGuest,
+                'cost_per_person' => round($menu->cost_per_person, 2),
+                'markup_amount_per_guest' => round($menu->markup_amount_per_guest, 2),
+                'markup_amount_per_person' => round($menu->markup_amount_per_person, 2),
+                'selling_price_per_guest' => round($menu->selling_price_per_guest, 2),
+                'selling_price_per_person' => round($menu->selling_price_per_person, 2),
+                // Values for the whole event.
+                'total_event_cost' => $totalEventCost,
+                // Legacy key: the UI used to read this as the event total.
+                'total_cost' => $totalEventCost,
+                'total_markup_amount' => round($menu->total_markup_amount, 2),
+                'total_selling_price' => round($menu->total_selling_price, 2),
+            ],
         ];
 
         foreach ($menu->segments as $segment) {
             $segmentData = [
                 'id' => $segment->id,
                 'name' => $segment->name,
-                'total_cost' => $segment->total_cost,
-                'items' => []
+                'total_cost' => round($segment->total_cost, 2),
+                'items' => [],
             ];
 
             foreach ($segment->items as $item) {
@@ -215,8 +225,8 @@ class MenuService
                     'recipe_name' => $item->recipe->recipe_name ?? 'Unknown Recipe',
                     'quantity' => $item->quantity,
                     'formatted_quantity' => $item->formatted_quantity,
-                    'cost_per_unit' => $item->cost_per_unit,
-                    'total_cost' => $item->total_cost,
+                    'cost_per_unit' => round($item->cost_per_unit, 2),
+                    'total_cost' => round($item->total_cost, 2),
                     'notes' => $item->notes,
                 ];
             }
@@ -244,24 +254,26 @@ class MenuService
             'target_head_count' => $menu->target_head_count,
             'segments' => [],
             'pricing' => [
-                'price_per_person' => $menu->selling_price_per_person,
-                'total_price' => $menu->total_selling_price,
-                'formatted_price_per_person' => '$' . number_format($menu->selling_price_per_person, 2),
-                'formatted_total_price' => '$' . number_format($menu->total_selling_price, 2),
-            ]
+                'price_per_person' => round($menu->selling_price_per_guest, 2),
+                'price_per_guest' => round($menu->selling_price_per_guest, 2),
+                'total_price' => round($menu->total_selling_price, 2),
+                'formatted_price_per_person' => $this->formatMoney($menu->selling_price_per_guest),
+                'formatted_price_per_guest' => $this->formatMoney($menu->selling_price_per_guest),
+                'formatted_total_price' => $this->formatMoney($menu->total_selling_price),
+            ],
         ];
 
         foreach ($menu->segments as $segment) {
             $segmentData = [
                 'id' => $segment->id,
                 'name' => $segment->name,
-                'items' => []
+                'items' => [],
             ];
 
             foreach ($segment->items as $item) {
                 // Calculate selling price for this item (base cost + markup)
-                $baseCostPerItem = $item->total_cost;
-                $sellingPricePerItem = $baseCostPerItem * $markupMultiplier;
+                $sellingPricePerItem = round($item->total_cost * $markupMultiplier, 2);
+                $totalSellingPrice = round($sellingPricePerItem * $menu->target_head_count, 2);
 
                 $segmentData['items'][] = [
                     'id' => $item->id,
@@ -269,9 +281,9 @@ class MenuService
                     'quantity' => $item->quantity,
                     'formatted_quantity' => $item->formatted_quantity,
                     'price_per_person' => $sellingPricePerItem,
-                    'formatted_price_per_person' => '$' . number_format($sellingPricePerItem, 2),
-                    'total_price' => $sellingPricePerItem * $menu->target_head_count,
-                    'formatted_total_price' => '$' . number_format($sellingPricePerItem * $menu->target_head_count, 2),
+                    'formatted_price_per_person' => $this->formatMoney($sellingPricePerItem),
+                    'total_price' => $totalSellingPrice,
+                    'formatted_total_price' => $this->formatMoney($totalSellingPrice),
                     'notes' => $item->notes,
                 ];
             }
@@ -283,18 +295,25 @@ class MenuService
     }
 
     /**
-     * Load menu relationships consistently
+     * Load menu relationships consistently.
+     *
+     * `servings` must be selected because recipe cost is per serving.
      */
     private function loadMenuRelations(Menu $menu): Menu
     {
         return $menu->load([
-            'segments' => function($query) {
+            'segments' => function ($query) {
                 $query->orderBy('sort_order');
             },
-            'segments.items' => function($query) {
+            'segments.items' => function ($query) {
                 $query->orderBy('sort_order');
             },
-            'segments.items.recipe:id,recipe_name'
+            'segments.items.recipe:id,recipe_name,servings',
         ]);
+    }
+
+    private function formatMoney(float|int|string|null $amount): string
+    {
+        return '$'.number_format((float) $amount, 2);
     }
 }

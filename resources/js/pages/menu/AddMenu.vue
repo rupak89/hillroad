@@ -470,7 +470,8 @@ const fetchRecipeCosts = async () => {
       // Convert the cost data array to an object for easy lookup
       recipeCosts.value = {}
       response.data.cost_data.forEach(cost => {
-        recipeCosts.value[cost.recipe_id] = cost.total_cost || 0
+        // Menu quantities are per guest, so cost a single serving.
+        recipeCosts.value[cost.recipe_id] = Number(cost.cost_per_serving ?? cost.total_cost ?? 0)
       })
     }
   } catch (error) {
@@ -495,7 +496,7 @@ const fetchSingleRecipeCost = async (recipeId) => {
     if (response.data.success) {
       // Batch update to prevent multiple reactive triggers
       const newCosts = { ...recipeCosts.value }
-      newCosts[recipeId] = response.data.cost_data.total_cost || 0
+      newCosts[recipeId] = Number(response.data.cost_data.cost_per_serving ?? response.data.cost_data.total_cost ?? 0)
       recipeCosts.value = newCosts
     }
   } catch (error) {
