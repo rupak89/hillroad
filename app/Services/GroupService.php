@@ -68,4 +68,25 @@ class GroupService
     {
         return Group::find($id);
     }
+
+    /**
+     * Get items for a specific group with pagination.
+     *
+     * @param int $groupId
+     * @param int $perPage
+     * @param string|null $search
+     * @return \Illuminate\Contracts\Pagination\LengthAwarePaginator
+     */
+    public function getGroupItems(int $groupId, int $perPage = 10, ?string $search = null)
+    {
+        $group = Group::findOrFail($groupId);
+        
+        $query = $group->items()->with(['supplier', 'defaultBrand', 'orderingUnit', 'countingUnit']);
+        
+        if ($search) {
+            $query->where('item_name', 'LIKE', '%' . $search . '%');
+        }
+        
+        return $query->orderBy('item_name')->paginate($perPage);
+    }
 }

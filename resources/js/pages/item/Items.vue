@@ -10,6 +10,8 @@ const router = useRouter();
 const { success, error } = useFlashMessage();
 const items = ref([]);
 const deletingItemIds = ref(new Set());
+const searchQuery = ref('');
+const searchTimeout = ref(null);
 
 const pagination = ref({
   current_page: 1,
@@ -44,10 +46,19 @@ const checkForSuccessMessage = () => {
   }
 };
 
-const fetchItemsList = async (page = 1) => {
+const fetchItemsList = async (page = 1, search = '') => {
   isLoading.value = true;
   try {
-    const response = await axios.get(`/api/items?page=${page}&per_page=${pagination.value.per_page}`);
+    const params = {
+      page: page,
+      per_page: pagination.value.per_page
+    };
+    
+    if (search.trim()) {
+      params.search = search.trim();
+    }
+
+    const response = await axios.get('/api/items', { params });
 
     items.value = response.data.items.data;
     pagination.value = {
@@ -69,7 +80,7 @@ const fetchItemsList = async (page = 1) => {
 
 const goToPage = (page) => {
   if (page >= 1 && page <= pagination.value.last_page && page !== pagination.value.current_page) {
-    fetchItemsList(page);
+    fetchItemsList(page, searchQuery.value);
   }
 };
 
@@ -79,7 +90,24 @@ const changePage = (page) => {
 
 const changePerPage = (newPerPage) => {
   pagination.value.per_page = newPerPage;
-  fetchItemsList(1); // Reset to first page when changing per page
+  fetchItemsList(1, searchQuery.value); // Reset to first page when changing per page
+};
+
+const handleSearch = () => {
+  // Clear existing timeout
+  if (searchTimeout.value) {
+    clearTimeout(searchTimeout.value);
+  }
+  
+  // Set new timeout for debouncing
+  searchTimeout.value = setTimeout(() => {
+    fetchItemsList(1, searchQuery.value); // Reset to first page when searching
+  }, 300);
+};
+
+const clearSearch = () => {
+  searchQuery.value = '';
+  fetchItemsList(1, '');
 };
 
 const deleteItem = async (itemId, itemName) => {
@@ -153,10 +181,35 @@ const isItemDeleting = (itemId) => {
           <span class="icon"><i class="mdi mdi-package-variant"></i></span>
           Items
         </p>
-        <a href="#" class="card-header-icon" @click.prevent="fetchItemsList">
+        <a href="#" class="card-header-icon" @click.prevent="fetchItemsList(pagination.current_page, searchQuery)">
           <span class="icon"><i class="mdi mdi-reload"></i></span>
         </a>
       </header>
+
+      <!-- Search Section -->
+      <div class="card-content border-b">
+        <div class="field">
+          <div class="control has-icons-left has-icons-right">
+            <input 
+              class="input" 
+              type="text" 
+              placeholder="Search items by name..." 
+              v-model="searchQuery"
+              @input="handleSearch"
+            >
+            <span class="icon is-small is-left">
+              <i class="mdi mdi-magnify"></i>
+            </span>
+            <span 
+              v-if="searchQuery" 
+              class="icon is-small is-right cursor-pointer" 
+              @click="clearSearch"
+            >
+              <i class="mdi mdi-close"></i>
+            </span>
+          </div>
+        </div>
+      </div>
 
       <div class="card-content">
         <div v-if="isLoading" class="has-text-centered py-6">
@@ -164,7 +217,11 @@ const isItemDeleting = (itemId) => {
         </div>
         <div v-else-if="items.length === 0" class="has-text-centered py-6">
           <span class="icon large"><i class="mdi mdi-package-off mdi-48px"></i></span>
-          <p class="mt-4">No items found. Click "Add Item" to create your first item.</p>
+          <div v-if="searchQuery.trim()">
+            <p class="mt-4">No items found for "{{ searchQuery }}".</p>
+            <button class="button mt-2" @click="clearSearch">Clear Search</button>
+          </div>
+          <p v-else class="mt-4">No items found. Click "Add Item" to create your first item.</p>
         </div>
         <div v-else>
           <table class="hidden lg:block">
@@ -281,5 +338,14 @@ const isItemDeleting = (itemId) => {
 
 .item-card:hover {
   background-color: #dbeafe;
+}
+
+/* Search styles */
+.cursor-pointer {
+  cursor: pointer;
+}
+
+.border-b {
+  border-bottom: 1px solid #e5e7eb;
 }
 </style>

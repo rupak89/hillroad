@@ -187,6 +187,14 @@ const isGroupDeleting = (groupId) => {
             <td class="actions-cell">
               <div class="buttons right nowrap">
                 <router-link
+                  :to="`/groups/${group.id}/items`"
+                  class="button small blue"
+                  :class="{ 'is-disabled': isGroupDeleting(group.id) }"
+                  :disabled="isGroupDeleting(group.id)"
+                  title="View Items">
+                  <span class="icon"><i class="mdi mdi-eye"></i></span>
+                </router-link>
+                <router-link
                   :to="`/groups/edit/${group.id}`"
                   class="button small green"
                   :class="{ 'is-disabled': isGroupDeleting(group.id) }"
@@ -224,6 +232,14 @@ const isGroupDeleting = (groupId) => {
                 </router-link>
 
                 <div class="buttons right nowrap">
+                    <router-link
+                      :to="`/groups/${group.id}/items`"
+                      class="button small blue"
+                      :class="{ 'is-disabled': isGroupDeleting(group.id) }"
+                      :disabled="isGroupDeleting(group.id)"
+                      title="View Items">
+                      <span class="icon py-10 px-5"><i class="mdi mdi-eye"></i></span>
+                    </router-link>
                     <button
                     class="button small red "
                     :class="{ 'is-loading': isGroupDeleting(group.id) }"

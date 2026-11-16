@@ -90,4 +90,28 @@ class GroupController extends Controller
             'message' => 'Group not found or could not be deleted',
         ], 404);
     }
+
+    /**
+     * Get items for a specific group.
+     */
+    public function items(Request $request, string $id)
+    {
+        try {
+            $perPage = $request->get('per_page', 10);
+            $search = $request->get('search');
+
+            $items = $this->groupService->getGroupItems($id, $perPage, $search);
+            $group = $this->groupService->getGroup($id);
+
+            return response()->json([
+                'message' => 'Group items list',
+                'items' => $items,
+                'group' => $group
+            ]);
+        } catch (\Exception $e) {
+            return response()->json([
+                'message' => 'Group not found',
+            ], 404);
+        }
+    }
 }

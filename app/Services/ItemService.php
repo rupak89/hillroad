@@ -17,12 +17,18 @@ class ItemService
      * Get the list of items with pagination.
      *
      * @param int $perPage
+     * @param string|null $search
      * @return LengthAwarePaginator
      */
-    public function getItems(int $perPage = 10): LengthAwarePaginator
+    public function getItems(int $perPage = 10, ?string $search = null): LengthAwarePaginator
     {
-        return Item::with(['supplier', 'defaultBrand', 'group', 'orderingUnit', 'countingUnit'])
-            ->orderBy('item_name')
+        $query = Item::with(['supplier', 'defaultBrand', 'group', 'orderingUnit', 'countingUnit']);
+
+        if ($search) {
+            $query->where('item_name', 'LIKE', '%' . $search . '%');
+        }
+
+        return $query->orderBy('item_name')
             ->paginate($perPage);
     }
 

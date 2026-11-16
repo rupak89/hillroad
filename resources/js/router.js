@@ -8,6 +8,7 @@ import AddUnit from '@/pages/unit/AddUnit.vue';
 import Supplier from './pages/supplier/Supplier.vue';
 import Group from './pages/group/Group.vue';
 import AddGroup from '@/pages/group/AddGroup.vue';
+import GroupItems from './pages/group/GroupItems.vue';
 import Brand from './pages/brand/Brand.vue';
 import AddBrand from '@/pages/brand/AddBrand.vue';
 import Recipes from './pages/recipe/Recipes.vue';
@@ -40,6 +41,7 @@ const routes = [
             { path: '/groups', component: Group },
             { path: '/groups/add', component: AddGroup },
             { path: '/groups/edit/:id', component: AddGroup },
+            { path: '/groups/:id/items', component: GroupItems },
             { path: '/brands', component: Brand },
             { path: '/brands/add', component: AddBrand },
             { path: '/brands/edit/:id', component: AddBrand },
