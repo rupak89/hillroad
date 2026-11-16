@@ -7,6 +7,7 @@ use App\DTOs\Menu\UpdateMenuDTO;
 use App\Models\Menu;
 use App\Models\User;
 use Illuminate\Pagination\LengthAwarePaginator;
+use Illuminate\Support\Facades\DB;
 
 class MenuService
 {
@@ -34,33 +35,35 @@ class MenuService
      */
     public function createMenu(CreateMenuDTO $dto): Menu
     {
-        // Create the menu first
-        $menu = Menu::create([
-            'name' => $dto->name,
-            'description' => $dto->description,
-            'target_head_count' => $dto->targetHeadCount,
-            'markup_percentage' => $dto->markupPercentage,
-            'user_id' => $dto->userId,
-        ]);
-
-        // Create segments and items from the DTO
-        foreach ($dto->segments as $segmentDTO) {
-            $segment = $menu->segments()->create([
-                'name' => $segmentDTO->name,
-                'sort_order' => $segmentDTO->sortOrder,
+        return DB::transaction(function () use ($dto) {
+            // Create the menu first
+            $menu = Menu::create([
+                'name' => $dto->name,
+                'description' => $dto->description,
+                'target_head_count' => $dto->targetHeadCount,
+                'markup_percentage' => $dto->markupPercentage,
+                'user_id' => $dto->userId,
             ]);
 
-            // Create items for this segment
-            foreach ($segmentDTO->items as $itemDTO) {
-                $segment->items()->create([
-                    'recipe_id' => $itemDTO->recipeId,
-                    'quantity' => $itemDTO->quantity,
-                    'notes' => $itemDTO->notes,
+            // Create segments and items from the DTO
+            foreach ($dto->segments as $segmentDTO) {
+                $segment = $menu->segments()->create([
+                    'name' => $segmentDTO->name,
+                    'sort_order' => $segmentDTO->sortOrder,
                 ]);
-            }
-        }
 
-        return $this->loadMenuRelations($menu);
+                // Create items for this segment
+                foreach ($segmentDTO->items as $itemDTO) {
+                    $segment->items()->create([
+                        'recipe_id' => $itemDTO->recipeId,
+                        'quantity' => $itemDTO->quantity,
+                        'notes' => $itemDTO->notes,
+                    ]);
+                }
+            }
+
+            return $this->loadMenuRelations($menu);
+        });
     }
 
     /**
@@ -68,80 +71,82 @@ class MenuService
      */
     public function updateMenu(Menu $menu, UpdateMenuDTO $dto): Menu
     {
-        // Update basic menu info
-        $menu->update([
-            'name' => $dto->name,
-            'description' => $dto->description,
-            'target_head_count' => $dto->targetHeadCount,
-            'markup_percentage' => $dto->markupPercentage,
-        ]);
+        return DB::transaction(function () use ($menu, $dto) {
+            // Update basic menu info
+            $menu->update([
+                'name' => $dto->name,
+                'description' => $dto->description,
+                'target_head_count' => $dto->targetHeadCount,
+                'markup_percentage' => $dto->markupPercentage,
+            ]);
 
-        // Get existing segment and item IDs to track what to keep/delete
-        $existingSegmentIds = $menu->segments->pluck('id')->toArray();
-        $submittedSegmentIds = [];
+            // Get existing segment and item IDs to track what to keep/delete
+            $existingSegmentIds = $menu->segments->pluck('id')->toArray();
+            $submittedSegmentIds = [];
 
-        // Process segments
-        foreach ($dto->segments as $segmentDTO) {
-            if ($segmentDTO->id) {
-                // Update existing segment
-                $segment = $menu->segments()->find($segmentDTO->id);
-                if ($segment) {
-                    $segment->update([
+            // Process segments
+            foreach ($dto->segments as $segmentDTO) {
+                if ($segmentDTO->id) {
+                    // Update existing segment
+                    $segment = $menu->segments()->find($segmentDTO->id);
+                    if ($segment) {
+                        $segment->update([
+                            'name' => $segmentDTO->name,
+                            'sort_order' => $segmentDTO->sortOrder,
+                        ]);
+                        $submittedSegmentIds[] = $segmentDTO->id;
+                    }
+                } else {
+                    // Create new segment
+                    $segment = $menu->segments()->create([
                         'name' => $segmentDTO->name,
                         'sort_order' => $segmentDTO->sortOrder,
                     ]);
-                    $submittedSegmentIds[] = $segmentDTO->id;
+                    $submittedSegmentIds[] = $segment->id;
                 }
-            } else {
-                // Create new segment
-                $segment = $menu->segments()->create([
-                    'name' => $segmentDTO->name,
-                    'sort_order' => $segmentDTO->sortOrder,
-                ]);
-                $submittedSegmentIds[] = $segment->id;
-            }
 
-            // Process items for this segment
-            $existingItemIds = $segment->items->pluck('id')->toArray();
-            $submittedItemIds = [];
+                // Process items for this segment
+                $existingItemIds = $segment->items->pluck('id')->toArray();
+                $submittedItemIds = [];
 
-            foreach ($segmentDTO->items as $itemDTO) {
-                if ($itemDTO->id) {
-                    // Update existing item
-                    $item = $segment->items()->find($itemDTO->id);
-                    if ($item) {
-                        $item->update([
+                foreach ($segmentDTO->items as $itemDTO) {
+                    if ($itemDTO->id) {
+                        // Update existing item
+                        $item = $segment->items()->find($itemDTO->id);
+                        if ($item) {
+                            $item->update([
+                                'recipe_id' => $itemDTO->recipeId,
+                                'quantity' => $itemDTO->quantity,
+                                'notes' => $itemDTO->notes,
+                            ]);
+                            $submittedItemIds[] = $itemDTO->id;
+                        }
+                    } else {
+                        // Create new item
+                        $item = $segment->items()->create([
                             'recipe_id' => $itemDTO->recipeId,
                             'quantity' => $itemDTO->quantity,
                             'notes' => $itemDTO->notes,
                         ]);
-                        $submittedItemIds[] = $itemDTO->id;
+                        $submittedItemIds[] = $item->id;
                     }
-                } else {
-                    // Create new item
-                    $item = $segment->items()->create([
-                        'recipe_id' => $itemDTO->recipeId,
-                        'quantity' => $itemDTO->quantity,
-                        'notes' => $itemDTO->notes,
-                    ]);
-                    $submittedItemIds[] = $item->id;
+                }
+
+                // Delete items that were removed
+                $itemsToDelete = array_diff($existingItemIds, $submittedItemIds);
+                if (! empty($itemsToDelete)) {
+                    $segment->items()->whereIn('id', $itemsToDelete)->delete();
                 }
             }
 
-            // Delete items that were removed
-            $itemsToDelete = array_diff($existingItemIds, $submittedItemIds);
-            if (! empty($itemsToDelete)) {
-                $segment->items()->whereIn('id', $itemsToDelete)->delete();
+            // Delete segments that were removed
+            $segmentsToDelete = array_diff($existingSegmentIds, $submittedSegmentIds);
+            if (! empty($segmentsToDelete)) {
+                $menu->segments()->whereIn('id', $segmentsToDelete)->delete();
             }
-        }
 
-        // Delete segments that were removed
-        $segmentsToDelete = array_diff($existingSegmentIds, $submittedSegmentIds);
-        if (! empty($segmentsToDelete)) {
-            $menu->segments()->whereIn('id', $segmentsToDelete)->delete();
-        }
-
-        return $this->loadMenuRelations($menu);
+            return $this->loadMenuRelations($menu);
+        });
     }
 
     /**
@@ -157,24 +162,26 @@ class MenuService
      */
     public function duplicateMenu(Menu $menu): Menu
     {
-        $duplicatedMenu = $menu->replicate();
-        $duplicatedMenu->name = $menu->name.' (Copy)';
-        $duplicatedMenu->save();
+        return DB::transaction(function () use ($menu) {
+            $duplicatedMenu = $menu->replicate();
+            $duplicatedMenu->name = $menu->name.' (Copy)';
+            $duplicatedMenu->save();
 
-        // Duplicate segments and items
-        foreach ($menu->segments as $segment) {
-            $duplicatedSegment = $segment->replicate();
-            $duplicatedSegment->menu_id = $duplicatedMenu->id;
-            $duplicatedSegment->save();
+            // Duplicate segments and items
+            foreach ($menu->segments as $segment) {
+                $duplicatedSegment = $segment->replicate();
+                $duplicatedSegment->menu_id = $duplicatedMenu->id;
+                $duplicatedSegment->save();
 
-            foreach ($segment->items as $item) {
-                $duplicatedItem = $item->replicate();
-                $duplicatedItem->menu_segment_id = $duplicatedSegment->id;
-                $duplicatedItem->save();
+                foreach ($segment->items as $item) {
+                    $duplicatedItem = $item->replicate();
+                    $duplicatedItem->menu_segment_id = $duplicatedSegment->id;
+                    $duplicatedItem->save();
+                }
             }
-        }
 
-        return $this->loadMenuRelations($duplicatedMenu);
+            return $this->loadMenuRelations($duplicatedMenu);
+        });
     }
 
     /**

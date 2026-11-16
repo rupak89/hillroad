@@ -8,6 +8,7 @@ use App\Models\MenuSegment;
 use App\Models\MenuSegmentItem;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\DB;
 
 class MenuSegmentController extends Controller
 {
@@ -25,9 +26,11 @@ class MenuSegmentController extends Controller
         $menu = Menu::findOrFail($validated['menu_id']);
         $this->authorize('update', $menu);
 
-        $validated['sort_order'] ??= $this->nextSegmentSortOrder($menu->id);
+        $segment = DB::transaction(function () use ($validated, $menu) {
+            $validated['sort_order'] ??= $this->nextSegmentSortOrder($menu->id);
 
-        $segment = MenuSegment::create($validated);
+            return MenuSegment::create($validated);
+        });
         $segment->load(['items.recipe']);
 
         return response()->json([
@@ -85,10 +88,12 @@ class MenuSegmentController extends Controller
             'sort_order' => 'nullable|integer',
         ]);
 
-        $validated['sort_order'] ??= $this->nextItemSortOrder($segment->id);
-        $validated['menu_segment_id'] = $segment->id;
+        $item = DB::transaction(function () use ($validated, $segment) {
+            $validated['sort_order'] ??= $this->nextItemSortOrder($segment->id);
+            $validated['menu_segment_id'] = $segment->id;
 
-        $item = MenuSegmentItem::create($validated);
+            return MenuSegmentItem::create($validated);
+        });
         $item->load(['recipe']);
 
         return response()->json([
@@ -149,11 +154,13 @@ class MenuSegmentController extends Controller
         $menu = Menu::findOrFail($validated['menu_id']);
         $this->authorize('update', $menu);
 
-        foreach ($validated['segments'] as $segmentData) {
-            MenuSegment::where('id', $segmentData['id'])
-                ->where('menu_id', $menu->id)
-                ->update(['sort_order' => $segmentData['sort_order']]);
-        }
+        DB::transaction(function () use ($validated, $menu) {
+            foreach ($validated['segments'] as $segmentData) {
+                MenuSegment::where('id', $segmentData['id'])
+                    ->where('menu_id', $menu->id)
+                    ->update(['sort_order' => $segmentData['sort_order']]);
+            }
+        });
 
         return response()->json([
             'message' => 'Segments reordered successfully',
@@ -173,11 +180,13 @@ class MenuSegmentController extends Controller
             'items.*.sort_order' => 'required|integer',
         ]);
 
-        foreach ($validated['items'] as $itemData) {
-            MenuSegmentItem::where('id', $itemData['id'])
-                ->where('menu_segment_id', $segment->id)
-                ->update(['sort_order' => $itemData['sort_order']]);
-        }
+        DB::transaction(function () use ($validated, $segment) {
+            foreach ($validated['items'] as $itemData) {
+                MenuSegmentItem::where('id', $itemData['id'])
+                    ->where('menu_segment_id', $segment->id)
+                    ->update(['sort_order' => $itemData['sort_order']]);
+            }
+        });
 
         return response()->json([
             'message' => 'Items reordered successfully',
