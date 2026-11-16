@@ -14,6 +14,7 @@ class Unit extends Model
         'ratio',
         'unit_type_id',
     ];
+
     protected $casts = [
         'ratio' => 'float',
     ];
@@ -26,8 +27,7 @@ class Unit extends Model
     /**
      * Convert quantity from this unit to a target unit
      *
-     * @param float $quantity
-     * @param Unit $targetUnit
+     * @param  float  $quantity
      * @return float
      */
     public function convertTo($quantity, Unit $targetUnit)
@@ -38,8 +38,8 @@ class Unit extends Model
         }
 
         // Load unit types if not already loaded
-        $this->load('unitType');
-        $targetUnit->load('unitType');
+        $this->loadMissing('unitType');
+        $targetUnit->loadMissing('unitType');
 
         // For units of the same unit type, prefer ratio-based conversion
         if ($this->unit_type_id === $targetUnit->unit_type_id && $this->ratio && $targetUnit->ratio) {
@@ -48,8 +48,8 @@ class Unit extends Model
 
         // If different unit types, check if they have the same physical_type
         if ($this->unit_type_id !== $targetUnit->unit_type_id) {
-            if (!$this->unitType->physical_type ||
-                !$targetUnit->unitType->physical_type ||
+            if (! $this->unitType->physical_type ||
+                ! $targetUnit->unitType->physical_type ||
                 $this->unitType->physical_type !== $targetUnit->unitType->physical_type) {
                 throw new \Exception("Cannot convert between different unit types: {$this->unitType->label} and {$targetUnit->unitType->label}");
             }
@@ -99,7 +99,7 @@ class Unit extends Model
     protected function getPhysicalUnitName()
     {
         // Ensure unitType is loaded
-        $this->load('unitType');
+        $this->loadMissing('unitType');
 
         // Use the base_unit from the unitType, which is already PHPUnitsOfMeasure compatible
         return $this->unitType->base_unit;
@@ -108,7 +108,7 @@ class Unit extends Model
     /**
      * Convert quantity to the base unit of this unit type
      *
-     * @param float $quantity
+     * @param  float  $quantity
      * @return float
      */
     public function toBaseUnit($quantity)
@@ -123,7 +123,6 @@ class Unit extends Model
     /**
      * Check if this unit can be converted to another unit
      *
-     * @param Unit $targetUnit
      * @return bool
      */
     public function canConvertTo(Unit $targetUnit)
