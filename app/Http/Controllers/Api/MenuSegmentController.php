@@ -6,13 +6,13 @@ use App\Http\Controllers\Controller;
 use App\Models\Menu;
 use App\Models\MenuSegment;
 use App\Models\MenuSegmentItem;
-use Illuminate\Http\Request;
 use Illuminate\Http\JsonResponse;
+use Illuminate\Http\Request;
 
 class MenuSegmentController extends Controller
 {
     /**
-     * Store a newly created segment
+     * Store a newly created segment.
      */
     public function store(Request $request): JsonResponse
     {
@@ -22,17 +22,10 @@ class MenuSegmentController extends Controller
             'sort_order' => 'nullable|integer',
         ]);
 
-        // Check menu ownership
         $menu = Menu::findOrFail($validated['menu_id']);
-        if ($menu->user_id !== $request->user()->id) {
-            return response()->json(['error' => 'Unauthorized'], 403);
-        }
+        $this->authorize('update', $menu);
 
-        // Set default sort order if not provided
-        if (!isset($validated['sort_order'])) {
-            $validated['sort_order'] = MenuSegment::where('menu_id', $validated['menu_id'])
-            ->max('sort_order') + 1;
-        }
+        $validated['sort_order'] ??= $this->nextSegmentSortOrder($menu->id);
 
         $segment = MenuSegment::create($validated);
         $segment->load(['items.recipe']);
@@ -44,14 +37,11 @@ class MenuSegmentController extends Controller
     }
 
     /**
-     * Update a segment
+     * Update a segment.
      */
     public function update(Request $request, MenuSegment $segment): JsonResponse
     {
-        // Check menu ownership
-        if ($segment->menu->user_id !== $request->user()->id) {
-            return response()->json(['error' => 'Unauthorized'], 403);
-        }
+        $this->authorize('update', $segment->menu);
 
         $validated = $request->validate([
             'name' => 'required|string|max:255',
@@ -68,14 +58,11 @@ class MenuSegmentController extends Controller
     }
 
     /**
-     * Delete a segment
+     * Delete a segment.
      */
-    public function destroy(Request $request, MenuSegment $segment): JsonResponse
+    public function destroy(MenuSegment $segment): JsonResponse
     {
-        // Check menu ownership
-        if ($segment->menu->user_id !== $request->user()->id) {
-            return response()->json(['error' => 'Unauthorized'], 403);
-        }
+        $this->authorize('update', $segment->menu);
 
         $segment->delete();
 
@@ -85,28 +72,20 @@ class MenuSegmentController extends Controller
     }
 
     /**
-     * Add item to segment
+     * Add an item to a segment.
      */
     public function addItem(Request $request, MenuSegment $segment): JsonResponse
     {
-        // Check menu ownership
-        if ($segment->menu->user_id !== $request->user()->id) {
-            return response()->json(['error' => 'Unauthorized'], 403);
-        }
+        $this->authorize('update', $segment->menu);
 
         $validated = $request->validate([
             'recipe_id' => 'required|exists:recipes,id',
             'quantity' => 'required|numeric|min:0.01',
-            'quantity_type' => 'required|in:per_guest,total',
             'notes' => 'nullable|string',
             'sort_order' => 'nullable|integer',
         ]);
 
-        // Set default sort order if not provided
-        if (!isset($validated['sort_order'])) {
-            $validated['sort_order'] = MenuSegmentItem::where('menu_segment_id', $segment->id)->max('sort_order') + 1;
-        }
-
+        $validated['sort_order'] ??= $this->nextItemSortOrder($segment->id);
         $validated['menu_segment_id'] = $segment->id;
 
         $item = MenuSegmentItem::create($validated);
@@ -119,19 +98,15 @@ class MenuSegmentController extends Controller
     }
 
     /**
-     * Update segment item
+     * Update a segment item.
      */
     public function updateItem(Request $request, MenuSegmentItem $item): JsonResponse
     {
-        // Check menu ownership
-        if ($item->segment->menu->user_id !== $request->user()->id) {
-            return response()->json(['error' => 'Unauthorized'], 403);
-        }
+        $this->authorize('update', $item->segment->menu);
 
         $validated = $request->validate([
             'recipe_id' => 'required|exists:recipes,id',
             'quantity' => 'required|numeric|min:0.01',
-            'quantity_type' => 'required|in:per_guest,total',
             'notes' => 'nullable|string',
             'sort_order' => 'nullable|integer',
         ]);
@@ -146,14 +121,11 @@ class MenuSegmentController extends Controller
     }
 
     /**
-     * Remove item from segment
+     * Remove an item from a segment.
      */
-    public function removeItem(Request $request, MenuSegmentItem $item): JsonResponse
+    public function removeItem(MenuSegmentItem $item): JsonResponse
     {
-        // Check menu ownership
-        if ($item->segment->menu->user_id !== $request->user()->id) {
-            return response()->json(['error' => 'Unauthorized'], 403);
-        }
+        $this->authorize('update', $item->segment->menu);
 
         $item->delete();
 
@@ -163,7 +135,7 @@ class MenuSegmentController extends Controller
     }
 
     /**
-     * Reorder segments
+     * Reorder segments within a menu.
      */
     public function reorderSegments(Request $request): JsonResponse
     {
@@ -174,15 +146,12 @@ class MenuSegmentController extends Controller
             'segments.*.sort_order' => 'required|integer',
         ]);
 
-        // Check menu ownership
         $menu = Menu::findOrFail($validated['menu_id']);
-        if ($menu->user_id !== $request->user()->id) {
-            return response()->json(['error' => 'Unauthorized'], 403);
-        }
+        $this->authorize('update', $menu);
 
         foreach ($validated['segments'] as $segmentData) {
             MenuSegment::where('id', $segmentData['id'])
-                ->where('menu_id', $validated['menu_id'])
+                ->where('menu_id', $menu->id)
                 ->update(['sort_order' => $segmentData['sort_order']]);
         }
 
@@ -192,14 +161,11 @@ class MenuSegmentController extends Controller
     }
 
     /**
-     * Reorder items within a segment
+     * Reorder items within a segment.
      */
     public function reorderItems(Request $request, MenuSegment $segment): JsonResponse
     {
-        // Check menu ownership
-        if ($segment->menu->user_id !== $request->user()->id) {
-            return response()->json(['error' => 'Unauthorized'], 403);
-        }
+        $this->authorize('update', $segment->menu);
 
         $validated = $request->validate([
             'items' => 'required|array',
@@ -216,5 +182,15 @@ class MenuSegmentController extends Controller
         return response()->json([
             'message' => 'Items reordered successfully',
         ]);
+    }
+
+    private function nextSegmentSortOrder(int $menuId): int
+    {
+        return ((int) MenuSegment::where('menu_id', $menuId)->max('sort_order')) + 1;
+    }
+
+    private function nextItemSortOrder(int $segmentId): int
+    {
+        return ((int) MenuSegmentItem::where('menu_segment_id', $segmentId)->max('sort_order')) + 1;
     }
 }
