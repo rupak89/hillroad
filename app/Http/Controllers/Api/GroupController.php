@@ -3,28 +3,28 @@
 namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
-use App\Services\GroupService;
 use App\Http\Requests\GroupRequest;
+use App\Services\GroupService;
 use Illuminate\Http\Request;
 
 class GroupController extends Controller
 {
+    public function __construct(private GroupService $groupService) {}
 
-    function __construct(private GroupService $groupService)
-    {
-
-    }
     /**
      * Display a listing of the resource.
      */
     public function index(Request $request)
     {
-        $perPage = $request->get('per_page', 10);
-        $groups = $this->groupService->getGroups($perPage);
+        $validated = $request->validate([
+            'per_page' => 'sometimes|integer|min:1|max:100',
+        ]);
+
+        $groups = $this->groupService->getGroups((int) ($validated['per_page'] ?? 10));
 
         return response()->json([
             'message' => 'Groups list',
-            'groups' => $groups
+            'groups' => $groups,
         ]);
     }
 
@@ -48,7 +48,7 @@ class GroupController extends Controller
     {
         $group = $this->groupService->getGroup($id);
 
-        if (!$group) {
+        if (! $group) {
             return response()->json([
                 'message' => 'Group not found',
             ], 404);
@@ -96,22 +96,21 @@ class GroupController extends Controller
      */
     public function items(Request $request, string $id)
     {
-        try {
-            $perPage = $request->get('per_page', 10);
-            $search = $request->get('search');
+        $validated = $request->validate([
+            'per_page' => 'sometimes|integer|min:1|max:100',
+            'search' => 'nullable|string|max:255',
+        ]);
 
-            $items = $this->groupService->getGroupItems($id, $perPage, $search);
-            $group = $this->groupService->getGroup($id);
+        $items = $this->groupService->getGroupItems(
+            (int) $id,
+            (int) ($validated['per_page'] ?? 10),
+            $validated['search'] ?? null
+        );
 
-            return response()->json([
-                'message' => 'Group items list',
-                'items' => $items,
-                'group' => $group
-            ]);
-        } catch (\Exception $e) {
-            return response()->json([
-                'message' => 'Group not found',
-            ], 404);
-        }
+        return response()->json([
+            'message' => 'Group items list',
+            'items' => $items,
+            'group' => $this->groupService->getGroup((int) $id),
+        ]);
     }
 }
