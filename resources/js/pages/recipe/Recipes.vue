@@ -143,7 +143,10 @@ const calculateRecipeCost = async (recipeId, index) => {
     const response = await axios.get(`/api/recipes/${recipeId}/cost`);
 
     if (response.data.success) {
-      recipes.value[index].calculatedCost = response.data.cost_data.total_cost;
+      const costData = response.data.cost_data;
+      recipes.value[index].calculatedCost = costData.total_cost;
+      recipes.value[index].calculatedCostInclGst = costData.total_cost_incl_gst;
+      recipes.value[index].gstRegistered = costData.gst_registered;
     } else {
       error('Cost Calculation Failed', response.data.message || 'Failed to calculate recipe cost');
     }
@@ -202,7 +205,7 @@ const calculateRecipeCost = async (recipeId, index) => {
             <th class="image-cell"></th>
             <th>Name</th>
             <th>Instructions</th>
-            <th>Cost</th>
+            <th>Cost (GST)</th>
             <th>Created At</th>
             <th></th>
           </tr>
@@ -226,7 +229,10 @@ const calculateRecipeCost = async (recipeId, index) => {
                 :class="{ 'is-loading': recipe.isCalculatingCost }"
                 :disabled="recipe.isCalculatingCost">
                 <span v-if="recipe.calculatedCost !== undefined">
-                  ${{ recipe.calculatedCost.toFixed(2) }}
+                  <span class="block">${{ recipe.calculatedCost.toFixed(2) }} excl.</span>
+                  <small v-if="recipe.gstRegistered" class="block">
+                    ${{ recipe.calculatedCostInclGst.toFixed(2) }} incl.
+                  </small>
                 </span>
                 <span v-else>View</span>
               </button>

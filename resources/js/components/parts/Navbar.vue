@@ -66,6 +66,10 @@ const logout = async () => {
                         <span class="icon"><i class="mdi mdi-email"></i></span>
                         <span>Messages</span>
                     </a> -->
+                    <router-link to="/settings/gst" class="navbar-item">
+                        <span class="icon"><i class="mdi mdi-percent"></i></span>
+                        <span>GST Settings</span>
+                    </router-link>
                     <hr class="navbar-divider">
                     <a class="navbar-item" @click.prevent="logout" href="#">
                         <span class="icon"><i class="mdi mdi-logout"></i></span>

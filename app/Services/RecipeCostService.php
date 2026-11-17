@@ -9,6 +9,10 @@ use Illuminate\Support\Facades\Log;
 
 class RecipeCostService
 {
+    public function __construct(
+        private readonly GstService $gst
+    ) {}
+
     /**
      * Results already calculated during the current request/scope.
      *
@@ -80,8 +84,12 @@ class RecipeCostService
             $unitId = $pivotData->unit_id;
             $unit = $unitId ? $units->get((int) $unitId) : null;
 
+            // The cost basis is always GST-exclusive. If item prices are
+            // entered GST-inclusive, the accessor removes the GST portion.
+            $unitCost = (float) $item->latest_price_excluding_gst;
+
             try {
-                if ($unit && $quantity > 0 && (float) $item->latest_price > 0) {
+                if ($unit && $quantity > 0 && $unitCost > 0) {
                     $itemCost = round($item->calculateCostForUnit($unit, $quantity), 4);
                     $totalCost += $itemCost;
 
@@ -90,7 +98,8 @@ class RecipeCostService
                         'item_name' => $item->item_name,
                         'quantity' => $quantity,
                         'unit' => $unit->name,
-                        'unit_cost' => $item->latest_price ?? 0,
+                        'unit_cost' => round($unitCost, 2),
+                        'unit_cost_incl_gst' => round($this->gst->amountIncludingGst($unitCost), 2),
                         'ordering_unit' => $item->orderingUnit ? $item->orderingUnit->name : 'N/A',
                         'cost_per_unit' => $item->getFormattedCostPerUnit(),
                         'total_cost' => round($itemCost, 2),
@@ -109,7 +118,8 @@ class RecipeCostService
                         'item_name' => $item->item_name,
                         'quantity' => $quantity,
                         'unit' => $unit ? $unit->name : 'N/A',
-                        'unit_cost' => $item->latest_price ?? 0,
+                        'unit_cost' => round($unitCost, 2),
+                        'unit_cost_incl_gst' => round($this->gst->amountIncludingGst($unitCost), 2),
                         'ordering_unit' => $item->orderingUnit ? $item->orderingUnit->name : 'N/A',
                         'cost_per_unit' => $item->getFormattedCostPerUnit(),
                         'total_cost' => 0,
@@ -130,7 +140,8 @@ class RecipeCostService
                     'item_name' => $item->item_name,
                     'quantity' => $quantity,
                     'unit' => $unit ? $unit->name : 'N/A',
-                    'unit_cost' => $item->latest_price ?? 0,
+                    'unit_cost' => round($unitCost, 2),
+                    'unit_cost_incl_gst' => round($this->gst->amountIncludingGst($unitCost), 2),
                     'ordering_unit' => $item->orderingUnit ? $item->orderingUnit->name : 'N/A',
                     'cost_per_unit' => $item->getFormattedCostPerUnit(),
                     'total_cost' => 0,
@@ -183,7 +194,9 @@ class RecipeCostService
             'recipe_name' => $recipe->recipe_name,
             'servings' => $servings,
             'total_cost' => $totalCost,
+            'total_cost_excl_gst' => $totalCost,
             'cost_per_serving' => $costPerServing,
+            'cost_per_serving_excl_gst' => $costPerServing,
             'cost_per_serving_formatted' => $this->formatMoney($costPerServing),
             'total_cost_formatted' => $this->formatMoney($totalCost),
             'item_costs' => $itemCosts,
@@ -192,6 +205,7 @@ class RecipeCostService
             'can_calculate_full_cost' => empty($errors),
             'ingredients_count' => count($itemCosts),
             'sub_recipes_count' => count($subRecipeCosts),
+            ...$this->gstFields($totalCost, $servings),
         ];
     }
 
@@ -233,10 +247,13 @@ class RecipeCostService
 
         return [
             'total_cost' => $totalCost,
+            'total_cost_excl_gst' => $totalCost,
             'servings' => $servings,
             'cost_per_serving' => $costPerServing,
+            'cost_per_serving_excl_gst' => $costPerServing,
             'cost_per_serving_formatted' => $this->formatMoney($costPerServing),
             'total_cost_formatted' => $this->formatMoney($totalCost),
+            ...$this->gstFields($totalCost, $servings),
             'breakdown' => $baseCostData,
         ];
     }
@@ -295,7 +312,9 @@ class RecipeCostService
             'recipe_name' => $recipe->recipe_name,
             'servings' => $servings,
             'total_cost' => 0.0,
+            'total_cost_excl_gst' => 0.0,
             'cost_per_serving' => 0.0,
+            'cost_per_serving_excl_gst' => 0.0,
             'cost_per_serving_formatted' => $this->formatMoney(0),
             'total_cost_formatted' => $this->formatMoney(0),
             'item_costs' => [],
@@ -304,11 +323,37 @@ class RecipeCostService
             'can_calculate_full_cost' => false,
             'ingredients_count' => 0,
             'sub_recipes_count' => 0,
+            ...$this->gstFields(0, $servings),
         ];
     }
 
     private function formatMoney(float $amount): string
     {
         return '$'.number_format($amount, 2);
+    }
+
+    /**
+     * GST summary for an exclusive cost, split per serving.
+     *
+     * @return array<string, bool|float|string>
+     */
+    private function gstFields(float $exclusiveTotal, float $servings = 1): array
+    {
+        $servings = max(0.01, $servings);
+        $totalGst = round($this->gst->gstOn($exclusiveTotal), 2);
+        $totalInclGst = round($exclusiveTotal + $totalGst, 2);
+        $perServingInclGst = round($totalInclGst / $servings, 2);
+
+        return [
+            'gst_registered' => $this->gst->isRegistered(),
+            'gst_rate' => $this->gst->rate(),
+            'prices_include_gst' => $this->gst->pricesIncludeGst(),
+            'total_gst' => $totalGst,
+            'total_cost_incl_gst' => $totalInclGst,
+            'cost_per_serving_incl_gst' => $perServingInclGst,
+            'total_gst_formatted' => $this->formatMoney($totalGst),
+            'total_cost_incl_gst_formatted' => $this->formatMoney($totalInclGst),
+            'cost_per_serving_incl_gst_formatted' => $this->formatMoney($perServingInclGst),
+        ];
     }
 }

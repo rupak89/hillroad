@@ -2,6 +2,7 @@
 
 namespace App\Models;
 
+use App\Services\GstService;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 
@@ -71,7 +72,26 @@ class Item extends Model
         // not costable instead of silently producing a cheaper result.
         $convertedQuantity = $unit->convertTo($quantity, $orderingUnit);
 
-        return (float) $this->latest_price * $convertedQuantity;
+        // Always cost from the GST-exclusive price. When the setting says
+        // entered prices already include GST, this back-calculates the net
+        // amount so recipe and menu costs stay comparable.
+        return $this->latest_price_excluding_gst * $convertedQuantity;
+    }
+
+    /**
+     * The item's price with GST removed, if the price was entered inclusive.
+     */
+    public function getLatestPriceExcludingGstAttribute(): float
+    {
+        return app(GstService::class)->amountExcludingGst((float) ($this->latest_price ?? 0));
+    }
+
+    /**
+     * The item's price with GST added when the entered price was exclusive.
+     */
+    public function getLatestPriceIncludingGstAttribute(): float
+    {
+        return app(GstService::class)->amountIncludingGst($this->latest_price_excluding_gst);
     }
 
     /**
@@ -92,7 +112,7 @@ class Item extends Model
 
         $baseUnitQuantity = $orderingUnit->toBaseUnit(1);
 
-        return $baseUnitQuantity > 0 ? $this->latest_price / $baseUnitQuantity : 0;
+        return $baseUnitQuantity > 0 ? $this->latest_price_excluding_gst / $baseUnitQuantity : 0;
     }
 
     /**
@@ -111,6 +131,6 @@ class Item extends Model
             return 'N/A';
         }
 
-        return '$'.number_format($this->latest_price, 2).' per '.$orderingUnit->name;
+        return '$'.number_format($this->latest_price_excluding_gst, 2).' per '.$orderingUnit->name;
     }
 }

@@ -2,6 +2,7 @@
 
 namespace App\Providers;
 
+use App\Services\GstService;
 use App\Services\RecipeCostService;
 use Illuminate\Support\ServiceProvider;
 
@@ -12,9 +13,15 @@ class AppServiceProvider extends ServiceProvider
      */
     public function register(): void
     {
+        // One GST settings cache per request/job, so cost calculations do not
+        // repeatedly query the settings table.
+        $this->app->scoped(GstService::class, fn () => new GstService);
+
         // One cost calculation cache per request/job. `scoped` keeps the cache
         // from leaking between requests under Octane or queue workers.
-        $this->app->scoped(RecipeCostService::class, fn () => new RecipeCostService);
+        $this->app->scoped(RecipeCostService::class, fn ($app) => new RecipeCostService(
+            $app->make(GstService::class)
+        ));
     }
 
     /**

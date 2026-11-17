@@ -121,6 +121,19 @@ import { onMounted } from 'vue';
                     </div>
                 </router-link>
 
+                <router-link to="/settings/gst">
+                    <div class="card">
+                        <div class="card-content">
+                            <div class="flex items-center justify-between">
+                                <div class="widget-label">
+                                    <h1>GST Settings</h1>
+                                </div>
+                                <span class="icon widget-icon text-yellow-500"><i class="mdi mdi-percent mdi-48px"></i></span>
+                            </div>
+                        </div>
+                    </div>
+                </router-link>
+
             </div>
 
 

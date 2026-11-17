@@ -57,7 +57,7 @@
                 <i class="mdi mdi-currency-usd mdi-36px"></i>
               </span>
               <div class="info-content">
-                <p class="heading">Per Person</p>
+                <p class="heading">Per Person (incl. GST)</p>
                 <p class="title is-4 has-text-success">{{ menu.pricing.formatted_price_per_person }}</p>
               </div>
             </div>
@@ -66,7 +66,7 @@
                 <i class="mdi mdi-calculator mdi-36px"></i>
               </span>
               <div class="info-content">
-                <p class="heading">Total Event</p>
+                <p class="heading">Total Event (incl. GST)</p>
                 <p class="title is-4 has-text-info">{{ menu.pricing.formatted_total_price }}</p>
               </div>
             </div>
@@ -95,7 +95,7 @@
                 <tr>
                   <th class="item-name-header">Item</th>
                   <th class="quantity-header">Quantity</th>
-                  <th class="price-header">Price per Person</th>
+                  <th class="price-header">Price per Person (incl. GST)</th>
                   <th class="total-header">Total ({{ menu.target_head_count }} guests)</th>
                   <th class="notes-header">Notes</th>
                 </tr>
@@ -160,6 +160,10 @@
                   <span class="price-label">Per Person:</span>
                   <span class="price-value">{{ menu.pricing.formatted_price_per_person }}</span>
                 </div>
+                <div class="price-line" v-if="menu.pricing.gst?.registered">
+                  <span class="price-label">Includes {{ menu.pricing.gst.rate }}% GST:</span>
+                  <span class="price-value">{{ menu.pricing.gst.formatted_amount_total }}</span>
+                </div>
                 <div class="price-line main-price">
                   <span class="price-label">Grand Total:</span>
                   <span class="price-value">{{ menu.pricing.formatted_total_price }}</span>
@@ -178,6 +182,12 @@
               <i class="mdi mdi-chef-hat"></i>
             </span>
             <em>Crafted with premium ingredients and professional service</em>
+          </p>
+          <p v-if="menu.pricing.gst" class="has-text-grey mt-2">
+            <span class="icon is-small">
+              <i class="mdi mdi-receipt"></i>
+            </span>
+            {{ menu.pricing.gst.note }}
           </p>
           <p class="has-text-grey-light mt-2">
             <span class="icon is-small">
@@ -232,6 +242,19 @@ onMounted(async () => {
 
 <style scoped>
 .printable-menu {
+  /* The printable view is a self-contained quote, so define the theme
+     colours it references instead of relying on Bulma variables that are
+     not loaded by the admin theme. */
+  --bulma-primary: #1e40af;
+  --bulma-primary-light: #60a5fa;
+  --bulma-primary-dark: #1e3a8a;
+  --bulma-info: #0284c7;
+  --bulma-success: #15803d;
+  --bulma-dark: #1f2937;
+  --bulma-grey: #6b7280;
+  --bulma-grey-darker: #374151;
+  --bulma-grey-lighter: #e5e7eb;
+
   max-width: 900px;
   margin: 0 auto;
   padding: 20px;

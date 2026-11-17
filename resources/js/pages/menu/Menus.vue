@@ -44,8 +44,9 @@
                 <th>Menu Name</th>
                 <th>Head Count</th>
                 <th>Segments</th>
-                <th>Cost / Guest</th>
-                <th>Total Cost</th>
+                <th>Cost / Guest (excl. GST)</th>
+                <th>Selling / Guest (incl. GST)</th>
+                <th>Total (incl. GST)</th>
                 <th></th>
               </tr>
             </thead>
@@ -68,16 +69,33 @@
                   <div v-if="menu.cost_per_guest">
                     <strong>${{ formatMoney(menu.cost_per_guest) }}</strong>
                   </div>
-                  <div v-else class="has-text-grey">
+                  <div v-else class="text-gray-500">
                     {{ menu.cost_per_guest === 0 ? '$0.00' : 'N/A' }}
                   </div>
-                </td>
-                <td data-label="Total Cost">
-                  <div v-if="menu.total_event_cost">
-                    <strong>${{ formatMoney(menu.total_event_cost) }}</strong>
+                  <div v-if="menu.gst?.registered" class="text-xs text-gray-500">
+                    + ${{ formatMoney(menu.cost_gst_per_guest) }} GST
                   </div>
-                  <div v-else class="has-text-grey">
-                    {{ menu.total_event_cost === 0 ? '$0.00' : 'N/A' }}
+                </td>
+                <td data-label="Selling / Guest">
+                  <div v-if="menu.selling_price_per_guest_incl_gst">
+                    <strong>${{ formatMoney(menu.selling_price_per_guest_incl_gst) }}</strong>
+                  </div>
+                  <div v-else class="text-gray-500">
+                    {{ menu.selling_price_per_guest_incl_gst === 0 ? '$0.00' : 'N/A' }}
+                  </div>
+                  <div v-if="menu.gst?.registered" class="text-xs text-gray-500">
+                    incl. ${{ formatMoney(menu.selling_gst_per_guest) }} GST
+                  </div>
+                </td>
+                <td data-label="Total">
+                  <div v-if="menu.total_selling_price_incl_gst">
+                    <strong>${{ formatMoney(menu.total_selling_price_incl_gst) }}</strong>
+                  </div>
+                  <div v-else class="text-gray-500">
+                    {{ menu.total_selling_price_incl_gst === 0 ? '$0.00' : 'N/A' }}
+                  </div>
+                  <div v-if="menu.gst?.registered" class="text-xs text-gray-500">
+                    ${{ formatMoney(menu.total_event_cost_incl_gst) }} cost incl. GST
                   </div>
                 </td>
                 <td class="actions-cell">
@@ -146,8 +164,14 @@
                   </div>
                   <div v-if="menu.cost_per_guest !== undefined && menu.cost_per_guest !== null">
                     <span class="icon"><i class="mdi mdi-currency-usd"></i></span>
-                    ${{ formatMoney(menu.cost_per_guest) }}/guest
+                    ${{ formatMoney(menu.cost_per_guest) }}/guest excl. GST
                   </div>
+                </div>
+                <div
+                  v-if="menu.selling_price_per_guest_incl_gst !== undefined && menu.selling_price_per_guest_incl_gst !== null"
+                  class="text-sm mt-1">
+                  <span class="icon"><i class="mdi mdi-cash"></i></span>
+                  ${{ formatMoney(menu.selling_price_per_guest_incl_gst) }}/guest incl. GST
                 </div>
               </router-link>
 
@@ -218,26 +242,51 @@
                   </div>
                   <div class="level-right">
                     <div class="has-text-right">
-                      <div>${{ formatMoney(item.cost_per_unit) }} per serving</div>
-                      <strong>${{ formatMoney(item.total_cost) }} / guest</strong>
+                      <div>${{ formatMoney(item.cost_per_unit) }} per serving excl. GST</div>
+                      <strong>${{ formatMoney(item.total_cost) }} / guest excl. GST</strong>
+                      <div v-if="costBreakdown.gst?.registered" class="text-xs text-gray-500">
+                        ${{ formatMoney(item.total_cost_incl_gst) }} / guest incl. GST
+                      </div>
                     </div>
                   </div>
                 </div>
               </div>
               <div class="has-text-right">
-                <strong>Segment Total: ${{ formatMoney(segment.total_cost) }} / guest</strong>
+                <strong>Segment Total: ${{ formatMoney(segment.total_cost) }} / guest excl. GST</strong>
+                <span v-if="costBreakdown.gst?.registered" class="text-sm text-gray-500">
+                  (${{ formatMoney(segment.total_cost_incl_gst) }} incl. GST)
+                </span>
               </div>
             </div>
 
             <div class="box has-background-light">
+              <h5 class="text-base font-bold mb-3">Per guest</h5>
               <div class="level">
                 <div class="level-left">
-                  Base cost / guest:
+                  Base cost / guest (excl. GST):
                 </div>
                 <div class="level-right">
                   <strong>${{ formatMoney(costBreakdown.totals.cost_per_guest) }}</strong>
                 </div>
               </div>
+              <template v-if="costBreakdown.gst?.registered">
+                <div class="level">
+                  <div class="level-left">
+                    GST ({{ costBreakdown.gst.rate }}%) on cost:
+                  </div>
+                  <div class="level-right">
+                    <strong>${{ formatMoney(costBreakdown.totals.cost_gst_per_guest) }}</strong>
+                  </div>
+                </div>
+                <div class="level">
+                  <div class="level-left">
+                    Cost / guest (incl. GST):
+                  </div>
+                  <div class="level-right">
+                    <strong>${{ formatMoney(costBreakdown.totals.cost_per_guest_incl_gst) }}</strong>
+                  </div>
+                </div>
+              </template>
               <div class="level">
                 <div class="level-left">
                   Markup / guest:
@@ -248,28 +297,89 @@
               </div>
               <div class="level">
                 <div class="level-left">
-                  <strong>Selling price / guest:</strong>
+                  Selling price / guest (excl. GST):
                 </div>
                 <div class="level-right">
-                  <strong class="has-text-primary">${{ formatMoney(costBreakdown.totals.selling_price_per_guest) }}</strong>
+                  <strong>${{ formatMoney(costBreakdown.totals.selling_price_per_guest) }}</strong>
                 </div>
               </div>
+              <template v-if="costBreakdown.gst?.registered">
+                <div class="level">
+                  <div class="level-left">
+                    GST ({{ costBreakdown.gst.rate }}%) on selling price:
+                  </div>
+                  <div class="level-right">
+                    <strong>${{ formatMoney(costBreakdown.totals.selling_gst_per_guest) }}</strong>
+                  </div>
+                </div>
+              </template>
               <div class="level">
                 <div class="level-left">
-                  <strong>Total base cost ({{ costBreakdown.target_head_count }} guests):</strong>
+                  <strong>Selling price / guest (incl. GST):</strong>
+                </div>
+                <div class="level-right">
+                  <strong class="has-text-primary">${{ formatMoney(costBreakdown.totals.selling_price_per_guest_incl_gst) }}</strong>
+                </div>
+              </div>
+
+              <hr>
+
+              <h5 class="text-base font-bold mb-3">Whole event ({{ costBreakdown.target_head_count }} guests)</h5>
+              <div class="level">
+                <div class="level-left">
+                  Total base cost (excl. GST):
                 </div>
                 <div class="level-right">
                   <strong>${{ formatMoney(costBreakdown.totals.total_event_cost) }}</strong>
                 </div>
               </div>
+              <template v-if="costBreakdown.gst?.registered">
+                <div class="level">
+                  <div class="level-left">
+                    Total GST on cost:
+                  </div>
+                  <div class="level-right">
+                    <strong>${{ formatMoney(costBreakdown.totals.total_cost_gst) }}</strong>
+                  </div>
+                </div>
+                <div class="level">
+                  <div class="level-left">
+                    Total event cost (incl. GST):
+                  </div>
+                  <div class="level-right">
+                    <strong>${{ formatMoney(costBreakdown.totals.total_event_cost_incl_gst) }}</strong>
+                  </div>
+                </div>
+              </template>
               <div class="level">
                 <div class="level-left">
-                  <strong>Total selling price:</strong>
+                  Total selling price (excl. GST):
                 </div>
                 <div class="level-right">
-                  <strong class="has-text-success">${{ formatMoney(costBreakdown.totals.total_selling_price) }}</strong>
+                  <strong>${{ formatMoney(costBreakdown.totals.total_selling_price) }}</strong>
                 </div>
               </div>
+              <template v-if="costBreakdown.gst?.registered">
+                <div class="level">
+                  <div class="level-left">
+                    Total GST on selling price:
+                  </div>
+                  <div class="level-right">
+                    <strong>${{ formatMoney(costBreakdown.totals.total_selling_gst) }}</strong>
+                  </div>
+                </div>
+              </template>
+              <div class="level">
+                <div class="level-left">
+                  <strong>Total selling price (incl. GST):</strong>
+                </div>
+                <div class="level-right">
+                  <strong class="has-text-success">${{ formatMoney(costBreakdown.totals.total_selling_price_incl_gst) }}</strong>
+                </div>
+              </div>
+              <p v-if="!costBreakdown.gst?.registered" class="help mt-3">
+                GST is not registered, so no GST is applied.
+              </p>
             </div>
           </div>
         </section>
@@ -438,5 +548,51 @@ onMounted(() => {
 .modal-card {
   max-width: 800px;
   width: 90vw;
+}
+
+.modal-card-title {
+  font-weight: 700;
+}
+
+.modal-card-body .level {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+  margin-bottom: 0.5rem;
+}
+
+.modal-card-body .level-left,
+.modal-card-body .level-right {
+  display: flex;
+  align-items: center;
+}
+
+.modal-card-body .box {
+  border: 1px solid #e5e7eb;
+  border-radius: 0.375rem;
+  background-color: #fff;
+  padding: 0.75rem 1rem;
+  margin-bottom: 0.75rem;
+}
+
+.modal-card-body .box.has-background-light {
+  background-color: #f9fafb;
+}
+
+.modal-card-body .title.is-5 {
+  font-size: 1rem;
+  font-weight: 700;
+  margin-bottom: 0.5rem;
+}
+
+.modal-card-body .subtitle {
+  font-size: 1.125rem;
+  font-weight: 600;
+  margin-bottom: 0.25rem;
+}
+
+.modal-card-body .has-text-right {
+  text-align: right;
 }
 </style>

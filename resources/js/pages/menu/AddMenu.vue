@@ -110,7 +110,7 @@
                   </div>
                   <div class="control">
                     <span class="button is-static">
-                      ${{ (memoizedSegmentCosts[segmentIndex] || 0).toFixed(2) }} per guest
+                      ${{ (memoizedSegmentCosts[segmentIndex] || 0).toFixed(2) }} per guest excl. GST
                     </span>
                     <button
                       v-if="menu.segments.length > 1"
@@ -176,7 +176,7 @@
                   <div class="item-cost">
                     <span class="button is-static is-small" :class="{ 'is-loading': loadingCosts.has(item.recipe_id) }">
                       <span v-if="!loadingCosts.has(item.recipe_id)">
-                        ${{ getItemCost(item).toFixed(2) }} per guest
+                        ${{ getItemCost(item).toFixed(2) }} per guest excl. GST
                       </span>
                     </span>
                   </div>
@@ -242,7 +242,7 @@
                   <tbody>
                     <tr>
                       <td>
-                        <strong>Base Cost</strong>
+                        <strong>Base Cost (excl. GST)</strong>
                         <br>
                         <small class="has-text-grey">Cost of ingredients and recipes</small>
                       </td>
@@ -253,7 +253,43 @@
                       </td>
                       <td class="has-text-right">
                         <span class="tag is-light is-medium">
-                          ${{ (memoizedTotalCost * menu.target_head_count).toFixed(2) }}
+                          ${{ memoizedEventCost.toFixed(2) }}
+                        </span>
+                      </td>
+                    </tr>
+
+                    <tr v-if="gstRegistered">
+                      <td>
+                        <strong>{{ gstLabel }} on cost</strong>
+                        <br>
+                        <small class="has-text-grey">GST portion of ingredient and recipe costs</small>
+                      </td>
+                      <td class="has-text-right">
+                        <span class="tag is-info is-light is-medium">
+                          +${{ memoizedCostGst.toFixed(2) }}
+                        </span>
+                      </td>
+                      <td class="has-text-right">
+                        <span class="tag is-info is-light is-medium">
+                          +${{ memoizedEventCostGst.toFixed(2) }}
+                        </span>
+                      </td>
+                    </tr>
+
+                    <tr v-if="gstRegistered">
+                      <td>
+                        <strong>Cost (incl. GST)</strong>
+                        <br>
+                        <small class="has-text-grey">Base cost with GST added</small>
+                      </td>
+                      <td class="has-text-right">
+                        <span class="tag is-light is-medium">
+                          ${{ memoizedCostInclGst.toFixed(2) }}
+                        </span>
+                      </td>
+                      <td class="has-text-right">
+                        <span class="tag is-light is-medium">
+                          ${{ memoizedEventCostInclGst.toFixed(2) }}
                         </span>
                       </td>
                     </tr>
@@ -262,7 +298,7 @@
                       <td>
                         <strong>Markup ({{ menu.markup_percentage }}%)</strong>
                         <br>
-                        <small class="has-text-grey">Profit margin added to base cost</small>
+                        <small class="has-text-grey">Profit margin added to the GST-exclusive cost</small>
                       </td>
                       <td class="has-text-right">
                         <span class="tag is-warning is-medium">
@@ -271,31 +307,71 @@
                       </td>
                       <td class="has-text-right">
                         <span class="tag is-warning is-medium">
-                          +${{ (memoizedMarkupAmount * menu.target_head_count).toFixed(2) }}
+                          +${{ (memoizedMarkupAmount * eventHeadCount).toFixed(2) }}
+                        </span>
+                      </td>
+                    </tr>
+
+                    <tr>
+                      <td>
+                        <strong>Selling Price (excl. GST)</strong>
+                        <br>
+                        <small class="has-text-grey">Base cost plus markup</small>
+                      </td>
+                      <td class="has-text-right">
+                        <span class="tag is-primary is-light is-medium">
+                          <strong>${{ memoizedSellingPricePerPerson.toFixed(2) }}</strong>
+                        </span>
+                      </td>
+                      <td class="has-text-right">
+                        <span class="tag is-primary is-light is-medium">
+                          <strong>${{ memoizedEventSellingExGst.toFixed(2) }}</strong>
+                        </span>
+                      </td>
+                    </tr>
+
+                    <tr v-if="gstRegistered">
+                      <td>
+                        <strong>{{ gstLabel }} on selling price</strong>
+                        <br>
+                        <small class="has-text-grey">GST added to the selling price</small>
+                      </td>
+                      <td class="has-text-right">
+                        <span class="tag is-info is-light is-medium">
+                          +${{ memoizedSellingGst.toFixed(2) }}
+                        </span>
+                      </td>
+                      <td class="has-text-right">
+                        <span class="tag is-info is-light is-medium">
+                          +${{ memoizedEventSellingGst.toFixed(2) }}
                         </span>
                       </td>
                     </tr>
 
                     <tr class="has-background-primary-light">
                       <td>
-                        <strong class="has-text-primary">Selling Price</strong>
+                        <strong class="has-text-primary">Selling Price (incl. GST)</strong>
                         <br>
                         <small class="has-text-grey">Final price to charge customers</small>
                       </td>
                       <td class="has-text-right">
                         <span class="tag is-primary is-medium">
-                          <strong>${{ memoizedSellingPricePerPerson.toFixed(2) }}</strong>
+                          <strong>${{ memoizedSellingPriceInclGst.toFixed(2) }}</strong>
                         </span>
                       </td>
                       <td class="has-text-right">
                         <span class="tag is-success is-medium">
-                          <strong>${{ (memoizedSellingPricePerPerson * menu.target_head_count).toFixed(2) }}</strong>
+                          <strong>${{ memoizedEventSellingInclGst.toFixed(2) }}</strong>
                         </span>
                       </td>
                     </tr>
                   </tbody>
                 </table>
               </div>
+
+              <p v-if="!gstRegistered" class="help mt-2">
+                GST is not registered, so selling prices do not include GST.
+              </p>
 
               <!-- Additional Info -->
               <div class="level mt-3">
@@ -316,9 +392,9 @@
                 <div class="level-right">
                   <div class="level-item">
                     <div class="has-text-right">
-                      <p class="heading">Revenue Potential</p>
+                      <p class="heading">Revenue Potential (incl. GST)</p>
                       <p class="title is-5 has-text-success">
-                        ${{ (memoizedSellingPricePerPerson * menu.target_head_count).toFixed(2) }}
+                        ${{ memoizedEventSellingInclGst.toFixed(2) }}
                       </p>
                     </div>
                   </div>
@@ -398,6 +474,11 @@ const isLoading = ref(true)
 const menuId = ref(null)
 const deletingSegments = ref([]) // Track which segments are being deleted
 const deletingItems = ref([]) // Track which items are being deleted
+const gstSettings = ref({
+  gst_registered: true,
+  gst_rate: 15,
+  prices_include_gst: false
+})
 
 // Computed properties
 const isEditMode = computed(() => {
@@ -428,6 +509,66 @@ const memoizedSellingPricePerPerson = computed(() => {
   return memoizedTotalCost.value + memoizedMarkupAmount.value
 })
 
+const gstRegistered = computed(() => Boolean(gstSettings.value.gst_registered))
+
+const gstRate = computed(() => {
+  return gstRegistered.value ? Number(gstSettings.value.gst_rate) || 0 : 0
+})
+
+const gstLabel = computed(() => {
+  return `GST (${Number(gstRate.value.toFixed(2))}%)`
+})
+
+const memoizedCostGst = computed(() => {
+  return memoizedTotalCost.value * (gstRate.value / 100)
+})
+
+const memoizedCostInclGst = computed(() => {
+  return memoizedTotalCost.value + memoizedCostGst.value
+})
+
+const memoizedSellingGst = computed(() => {
+  return memoizedSellingPricePerPerson.value * (gstRate.value / 100)
+})
+
+const memoizedSellingPriceInclGst = computed(() => {
+  return memoizedSellingPricePerPerson.value + memoizedSellingGst.value
+})
+
+// Round money the same way the backend does so the editor and the saved
+// menu/cost-breakdown totals agree to the cent.
+const roundMoney = (value) => {
+  return Math.round((Number(value) + Number.EPSILON) * 100) / 100
+}
+
+const eventHeadCount = computed(() => {
+  return Math.max(0, Number(menu.target_head_count) || 0)
+})
+
+const memoizedEventCost = computed(() => {
+  return roundMoney(memoizedTotalCost.value * eventHeadCount.value)
+})
+
+const memoizedEventCostGst = computed(() => {
+  return roundMoney(memoizedEventCost.value * (gstRate.value / 100))
+})
+
+const memoizedEventCostInclGst = computed(() => {
+  return roundMoney(memoizedEventCost.value + memoizedEventCostGst.value)
+})
+
+const memoizedEventSellingExGst = computed(() => {
+  return roundMoney(memoizedSellingPricePerPerson.value * eventHeadCount.value)
+})
+
+const memoizedEventSellingGst = computed(() => {
+  return roundMoney(memoizedEventSellingExGst.value * (gstRate.value / 100))
+})
+
+const memoizedEventSellingInclGst = computed(() => {
+  return roundMoney(memoizedEventSellingExGst.value + memoizedEventSellingGst.value)
+})
+
 // Watch for changes in target_head_count to update total costs display
 watch(() => menu.target_head_count, () => {
   // Total cost calculations will automatically update
@@ -442,6 +583,16 @@ const fetchRecipes = async () => {
   } catch (fetchError) {
     console.error('Error fetching recipes:', fetchError)
     error('Loading Error', 'Error loading recipes. Please refresh the page.')
+  }
+}
+
+const fetchGstSettings = async () => {
+  try {
+    const response = await axios.get('/api/settings/gst')
+    gstSettings.value = response.data.settings
+  } catch (fetchError) {
+    console.error('Error fetching GST settings:', fetchError)
+    // Keep the NZ default so the summary still shows a GST line.
   }
 }
 
@@ -797,7 +948,7 @@ const submitForm = async () => {
 onMounted(async () => {
   isLoading.value = true
   try {
-    await fetchRecipes()
+    await Promise.all([fetchRecipes(), fetchGstSettings()])
 
     if (isEditMode.value) {
       await fetchMenu()

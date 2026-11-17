@@ -20,6 +20,7 @@ import useUserStore from './stores/user';
 import Menus from './pages/menu/Menus.vue';
 import AddMenu from './pages/menu/AddMenu.vue';
 import PrintableMenu from './pages/menu/PrintableMenu.vue';
+import GstSettings from './pages/settings/GstSettings.vue';
 
 
 
@@ -51,6 +52,7 @@ const routes = [
             { path: '/menus/add', component: AddMenu },
             { path: '/menus/edit/:id', component: AddMenu },
             { path: '/menus/:id/print', component: PrintableMenu },
+            { path: '/settings/gst', component: GstSettings },
         ],
         // beforeEnter: (to, from, next) => {
         //     try{

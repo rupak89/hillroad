@@ -23,14 +23,28 @@
       <div class="notification is-light">
 
 
-        <div class="columns">
+        <div class="columns is-multiline">
           <div class="column">
-            <strong>Total Cost: {{ costData.total_cost_formatted }}</strong>
+            <strong>Total Cost (excl. GST): {{ costData.total_cost_formatted }}</strong>
+          </div>
+          <div class="column" v-if="costData.gst_registered">
+            <strong>GST ({{ costData.gst_rate }}%): {{ costData.total_gst_formatted }}</strong>
+          </div>
+          <div class="column">
+            <strong>Total Cost (incl. GST): {{ costData.total_cost_incl_gst_formatted }}</strong>
           </div>
           <div class="column" v-if="quantity > 1">
-            <strong>Cost per Serving: {{ costData.cost_per_serving_formatted }}</strong>
+            <strong>Cost per Serving (excl. GST): {{ costData.cost_per_serving_formatted }}</strong>
+          </div>
+          <div class="column" v-if="quantity > 1 && costData.gst_registered">
+            <strong>Cost per Serving (incl. GST): {{ costData.cost_per_serving_incl_gst_formatted }}</strong>
           </div>
         </div>
+
+        <p v-if="costData.prices_include_gst" class="help">
+          Item prices are entered GST-inclusive, so ingredient costs have been
+          converted back to GST-exclusive amounts.
+        </p>
 
         <!-- Show errors if any -->
         <div v-if="costData.breakdown.errors && costData.breakdown.errors.length > 0" class="notification is-warning">
@@ -49,7 +63,7 @@
                 <th>Item</th>
                 <th>Quantity</th>
                 <!-- <th>Cost per Unit</th> -->
-                <th>Subtotal</th>
+                <th>Subtotal (excl. GST)</th>
               </tr>
             </thead>
             <tbody>
@@ -78,8 +92,8 @@
               <tr>
                 <th>Recipe</th>
                 <th>Quantity</th>
-                <th>Unit Cost</th>
-                <th>Total Cost</th>
+                <th>Unit Cost (excl. GST)</th>
+                <th>Total Cost (excl. GST)</th>
               </tr>
             </thead>
             <tbody>

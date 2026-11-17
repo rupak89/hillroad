@@ -212,6 +212,10 @@ const getError = (field) => {
               <p class="text-red-500 text-sm mt-1" v-if="hasError('latest_price')">
                 {{ getError('latest_price') }}
               </p>
+              <p class="text-gray-500 text-sm mt-1">
+                Whether this price includes GST is set in
+                <router-link to="/settings/gst" class="has-text-link">GST Settings</router-link>.
+              </p>
             </div>
 
             <!-- Row 2: Ordering Unit & Counting Unit -->

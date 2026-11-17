@@ -35,6 +35,11 @@
   display: none;
 }
 
+/* Support the Bulma-style active class used by Vue modal components. */
+.modal.is-active {
+  display: flex;
+}
+
 .navbar-item.dropdown.active .navbar-dropdown {
   display: block !important;
 }

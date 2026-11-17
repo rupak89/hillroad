@@ -62,6 +62,15 @@
             </router-link>
         </li>
         </ul>
+        <p class="menu-label">Settings</p>
+        <ul class="menu-list">
+        <li class="--set-active-tables-html">
+            <router-link to="/settings/gst">
+            <span class="icon"><i class="mdi mdi-percent"></i></span>
+            <span class="menu-item-label">GST Settings</span>
+            </router-link>
+        </li>
+        </ul>
         <p class="menu-label hidden">Examples</p>
         <ul class="menu-list hidden">
         <!-- <li class="--set-active-tables-html">

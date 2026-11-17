@@ -2,6 +2,7 @@
 
 namespace App\Models;
 
+use App\Services\GstService;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
@@ -101,6 +102,70 @@ class Menu extends Model
     public function getTotalSellingPriceAttribute(): float
     {
         return round($this->selling_price_per_guest * max(0, (int) $this->target_head_count), 2);
+    }
+
+    /**
+     * GST component of the base cost for a single guest.
+     */
+    public function getCostGstPerGuestAttribute(): float
+    {
+        return round(app(GstService::class)->gstOn($this->cost_per_guest), 2);
+    }
+
+    /**
+     * Base cost per guest including GST.
+     */
+    public function getCostPerGuestInclGstAttribute(): float
+    {
+        return round($this->cost_per_guest + $this->cost_gst_per_guest, 2);
+    }
+
+    /**
+     * GST component of the selling price for a single guest.
+     */
+    public function getSellingGstPerGuestAttribute(): float
+    {
+        return round(app(GstService::class)->gstOn($this->selling_price_per_guest), 2);
+    }
+
+    /**
+     * Selling price per guest including GST. This is the customer-facing price.
+     */
+    public function getSellingPricePerGuestInclGstAttribute(): float
+    {
+        return round($this->selling_price_per_guest + $this->selling_gst_per_guest, 2);
+    }
+
+    /**
+     * GST component of the base cost for the whole event.
+     */
+    public function getTotalCostGstAttribute(): float
+    {
+        return round(app(GstService::class)->gstOn($this->total_event_cost), 2);
+    }
+
+    /**
+     * Base cost for the whole event including GST.
+     */
+    public function getTotalEventCostInclGstAttribute(): float
+    {
+        return round($this->total_event_cost + $this->total_cost_gst, 2);
+    }
+
+    /**
+     * GST component of the selling price for the whole event.
+     */
+    public function getTotalSellingGstAttribute(): float
+    {
+        return round(app(GstService::class)->gstOn($this->total_selling_price), 2);
+    }
+
+    /**
+     * Total selling price for the whole event including GST.
+     */
+    public function getTotalSellingPriceInclGstAttribute(): float
+    {
+        return round($this->total_selling_price + $this->total_selling_gst, 2);
     }
 
     /**
