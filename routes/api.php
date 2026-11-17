@@ -2,23 +2,9 @@
 
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Route;
-use Illuminate\Support\Facades\Log;
-
 
 Route::get('/user', function (Request $request) {
     return $request->user();
-})->middleware('auth:sanctum');
-
-Route::get('/user-test', function (Request $request) {
-    return response()->json([
-        'session' => session()->all(),
-        'user' => $request->user(),
-        'cookies' => request()->cookies->all(),
-    ]);
-})->middleware('auth:sanctum');
-
-Route::get('/session-test-api', function (Request $request) {
-    return session()->all();
 })->middleware('auth:sanctum');
 
 Route::group(['middleware' => 'auth:sanctum'], function () {
@@ -81,5 +67,7 @@ Route::group(['middleware' => 'auth:sanctum'], function () {
         ->name('api.menu-segments.reorder-items');
 });
 
-
-
+// Unknown API routes must return JSON instead of falling through to the SPA
+// catch-all in routes/web.php.
+Route::any('/{any}', fn () => response()->json(['message' => 'Not found'], 404))
+    ->where('any', '.*');
