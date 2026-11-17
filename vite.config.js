@@ -9,6 +9,7 @@ export default defineConfig({
             input: [
                 'resources/css/app.css',
                 'resources/css/main.css',
+                'resources/css/brand.css',
                 'resources/js/app.js', // Only use app.js as JS entry
             ],
             refresh: true,

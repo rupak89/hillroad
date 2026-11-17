@@ -10,6 +10,9 @@ const router = useRouter()
 const userStore = useUserStore()
 // Importing necessary modules and components
 
+// Served from public/ so the logo keeps a stable URL in dev and in builds.
+const logoUrl = '/images/hill-road-catering-logo-white.webp'
+
 const login = ref('');
 const password = ref('');
 const remember = ref(true);
@@ -55,6 +58,9 @@ const submitLogin = async () => {
 
 <template>
   <div class="form-screen">
+    <div class="login-brand">
+      <img :src="logoUrl" alt="Hill Road Catering">
+    </div>
     <section class="section main-section ">
     <div class="card">
       <header class="card-header">
@@ -120,9 +126,51 @@ const submitLogin = async () => {
 
 
 <style scoped>
+.form-screen {
+  position: fixed;
+  inset: 0;
+  z-index: 45;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 2rem 1.5rem;
+  overflow-y: auto;
+  background:
+    radial-gradient(120% 100% at 50% -10%, rgba(255, 255, 255, 0.1), transparent 55%),
+    linear-gradient(150deg, #3a4633 0%, #303b2b 100%);
+}
+
+.login-brand {
+  width: min(250px, 65vw);
+  margin-bottom: 1.6rem;
+}
+
+.login-brand img {
+  display: block;
+  width: 100%;
+  height: auto;
+}
+
+.form-screen .main-section {
+  display: block;
+  width: 100%;
+  max-width: 430px;
+  height: auto;
+  padding: 0;
+}
+
+.form-screen .card {
+  width: 100%;
+  overflow: hidden;
+  border-color: rgba(255, 255, 255, 0.14);
+  border-radius: 6px;
+  box-shadow: 0 35px 70px -30px rgba(15, 20, 13, 0.65);
+}
+
 .loader {
-  border: 2px solid #f3f3f3;
-  border-top: 2px solid #3498db;
+  border: 2px solid #e6ddcb;
+  border-top: 2px solid #3a4633;
   border-radius: 50%;
   width: 14px;
   height: 14px;
@@ -133,5 +181,22 @@ const submitLogin = async () => {
 @keyframes spin {
   0% { transform: rotate(0deg); }
   100% { transform: rotate(360deg); }
+}
+
+@media (max-height: 720px) {
+  .form-screen {
+    justify-content: flex-start;
+  }
+}
+
+@media (max-width: 560px) {
+  .form-screen {
+    padding: 1.5rem 1rem;
+  }
+
+  .login-brand {
+    width: 190px;
+    margin-bottom: 1.25rem;
+  }
 }
 </style>

@@ -174,7 +174,7 @@ const calculateRecipeCost = async (recipeId, index) => {
             Recipes
             </h1>
             <router-link to="/recipes/add" class="button light">
-                <button class="button light">Add Recipe</button>
+                Add Recipe
             </router-link>
         </div>
     </section>
@@ -325,13 +325,13 @@ const calculateRecipeCost = async (recipeId, index) => {
 <style>
 /* Custom recipe card styles */
 .recipe-card {
-  background-color: #fef3c7;
-  border-left: 4px solid #f59e0b;
+  background-color: #fbf3e2;
+  border-left: 4px solid #a9793a;
   border-radius: 0.375rem;
   box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
 }
 
 .recipe-card:hover {
-  background-color: #fde68a;
+  background-color: #f6ead0;
 }
 </style>

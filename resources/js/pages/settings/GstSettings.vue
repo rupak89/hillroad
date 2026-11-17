@@ -233,20 +233,20 @@ onMounted(fetchSettings)
   display: inline-flex;
   align-items: center;
   border-radius: 9999px;
-  background-color: #dcfce7;
+  background-color: #eef3e7;
   padding: 0.25rem 0.75rem;
   font-size: 0.875rem;
   font-weight: 600;
-  color: #166534;
+  color: #3f5330;
 }
 
 .settings-note {
-  border: 1px solid #bfdbfe;
+  border: 1px solid #d5dfda;
   border-radius: 0.375rem;
-  background-color: #eff6ff;
+  background-color: #eef2ef;
   padding: 0.75rem 1rem;
   margin-bottom: 1.25rem;
-  color: #1e3a8a;
+  color: #3f5148;
 }
 
 .gst-rate-field {
@@ -254,17 +254,17 @@ onMounted(fetchSettings)
 }
 
 .input-error {
-  border-color: #ef4444 !important;
+  border-color: #9e4a3d !important;
 }
 
 .help-error {
-  color: #dc2626;
+  color: #9e4a3d;
 }
 
 .preview-panel {
-  border: 1px solid #e5e7eb;
+  border: 1px solid #e3dccd;
   border-radius: 0.375rem;
-  background-color: #f9fafb;
+  background-color: #faf7f0;
   padding: 1rem 1.25rem;
 }
 
@@ -273,6 +273,7 @@ onMounted(fetchSettings)
   align-items: center;
   gap: 0.5rem;
   font-weight: 700;
+  color: #3a4633;
 }
 
 .preview-intro {
@@ -292,14 +293,14 @@ onMounted(fetchSettings)
   font-weight: 600;
   letter-spacing: 0.03em;
   text-transform: uppercase;
-  color: #6b7280;
+  color: #6c7264;
 }
 
 .preview-value {
   margin-top: 0.25rem;
   font-size: 1.125rem;
   font-weight: 600;
-  color: #111827;
+  color: #2b2f27;
 }
 
 @media (min-width: 768px) {

@@ -228,16 +228,3 @@ onMounted(async () => {
   }
 });
 </script>
-
-<style scoped>
-.add-button {
-  background-color: #abf6ab !important; /* Light green */
-  border-color: #90ee90 !important;
-  color: #2c3e50 !important; /* Dark text for better contrast */
-}
-
-.add-button:hover {
-  background-color: #7dd87d !important; /* Slightly darker green on hover */
-  border-color: #7dd87d !important;
-}
-</style>

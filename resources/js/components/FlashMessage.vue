@@ -66,13 +66,7 @@ const typeClasses = computed(() => {
 })
 
 const iconClasses = computed(() => {
-  const classes = {
-    success: 'has-text-success',
-    error: 'has-text-danger',
-    warning: 'has-text-warning',
-    info: 'has-text-info'
-  }
-  return classes[props.type]
+  return props.type === 'warning' ? 'has-text-warning' : 'has-text-white'
 })
 
 const iconClass = computed(() => {
@@ -120,37 +114,48 @@ watch(() => props.show, (newValue) => {
   z-index: 9999;
   max-width: 400px;
   min-width: 300px;
-  box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+  box-shadow: 0 18px 40px -20px rgba(29, 37, 25, 0.55);
 }
 
-/* Ensure solid backgrounds for different message types */
+/* Brand-coloured toasts */
 .flash-message.is-success {
-  background-color: #1eb873;
+  background-color: #3f5a37;
   color: white;
 }
 
 .flash-message.is-danger {
-  background-color: #f14668;
+  background-color: #9e4a3d;
   color: white;
 }
 
 .flash-message.is-warning {
-  background-color: #ffe08a;
-  color: rgba(0, 0, 0, 0.7);
+  background-color: #f6e7c6;
+  color: #5c4a1f;
 }
 
 .flash-message.is-info {
-  background-color: #3e8ed0;
+  background-color: #4e6b63;
   color: white;
 }
 
-/* Ensure delete button is visible */
+/* Close button follows the toast text colour */
 .flash-message .delete {
-  background-color: rgba(255, 255, 255, 0.3);
+  background-color: rgba(255, 255, 255, 0.2);
+  color: inherit;
 }
 
 .flash-message .delete:hover {
-  background-color: rgba(255, 255, 255, 0.5);
+  background-color: rgba(255, 255, 255, 0.34);
+  color: inherit;
+}
+
+.flash-message.is-warning .delete {
+  background-color: rgba(43, 47, 39, 0.1);
+  color: #5c4a1f;
+}
+
+.flash-message.is-warning .delete:hover {
+  background-color: rgba(43, 47, 39, 0.18);
 }
 
 .flash-message-enter-active {

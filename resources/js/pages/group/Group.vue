@@ -142,7 +142,7 @@ const isGroupDeleting = (groupId) => {
             Groups
             </h1>
             <router-link to="/groups/add" class="button light">
-                <button class="button light">Add Group</button>
+                Add Group
             </router-link>
         </div>
     </section>
@@ -279,13 +279,13 @@ const isGroupDeleting = (groupId) => {
 <style>
 /* Custom group card styles */
 .group-card {
-  background-color: #d1fae5;
-  border-left: 4px solid #10b981;
+  background-color: #eef3e7;
+  border-left: 4px solid #5f7a4d;
   border-radius: 0.375rem;
   box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
 }
 
 .group-card:hover {
-  background-color: #a7f3d0;
+  background-color: #e3ebd8;
 }
 </style>

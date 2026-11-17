@@ -53,7 +53,7 @@ const fetchItemsList = async (page = 1, search = '') => {
       page: page,
       per_page: pagination.value.per_page
     };
-    
+
     if (search.trim()) {
       params.search = search.trim();
     }
@@ -98,7 +98,7 @@ const handleSearch = () => {
   if (searchTimeout.value) {
     clearTimeout(searchTimeout.value);
   }
-  
+
   // Set new timeout for debouncing
   searchTimeout.value = setTimeout(() => {
     fetchItemsList(1, searchQuery.value); // Reset to first page when searching
@@ -170,7 +170,7 @@ const isItemDeleting = (itemId) => {
           Items
         </h1>
         <router-link to="/items/add" class="button light">
-          <button class="button light">Add Item</button>
+          Add Item
         </router-link>
       </div>
     </section>
@@ -190,19 +190,19 @@ const isItemDeleting = (itemId) => {
       <div class="card-content border-b">
         <div class="field">
           <div class="control has-icons-left has-icons-right">
-            <input 
-              class="input" 
-              type="text" 
-              placeholder="Search items by name..." 
+            <input
+              class="input"
+              type="text"
+              placeholder="Search items by name..."
               v-model="searchQuery"
               @input="handleSearch"
             >
             <span class="icon is-small is-left">
               <i class="mdi mdi-magnify"></i>
             </span>
-            <span 
-              v-if="searchQuery" 
-              class="icon is-small is-right cursor-pointer" 
+            <span
+              v-if="searchQuery"
+              class="icon is-small is-right cursor-pointer"
               @click="clearSearch"
             >
               <i class="mdi mdi-close"></i>

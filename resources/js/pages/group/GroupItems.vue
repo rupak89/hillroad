@@ -297,7 +297,7 @@ const formatPrice = (price) => {
 }
 
 .item-card:hover {
-  background-color: #f5f5f5;
+  background-color: #f4efe4;
   border-radius: 0.375rem;
 }
 

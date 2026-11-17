@@ -201,7 +201,8 @@ onBeforeUnmount(() => {
 }
 
 .table th {
-  background-color: #f5f5f5;
+  background-color: #f4efe4;
+  color: #57624d;
 }
 
 .notification {

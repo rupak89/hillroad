@@ -144,7 +144,7 @@ const isSupplierDeleting = (supplierId) => {
             Suppliers
             </h1>
             <router-link to="/suppliers/add" class="button light">
-                <button class="button light">Add Supplier</button>
+               Add Supplier
             </router-link>
         </div>
     </section>
@@ -286,13 +286,13 @@ const isSupplierDeleting = (supplierId) => {
 <style>
 /* Custom supplier card styles */
 .supplier-card {
-  background-color: #dbeafe;
-  border-left: 4px solid #3b82f6;
+  background-color: #eef2ef;
+  border-left: 4px solid #4e6b63;
   border-radius: 0.375rem;
   box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
 }
 
 .supplier-card:hover {
-  background-color: #bfdbfe;
+  background-color: #e2e9e4;
 }
 </style>

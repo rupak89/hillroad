@@ -115,21 +115,21 @@ defineEmits(['remove']);
 :deep(.multiselect) {
   min-height: 2.5rem;
   border-radius: 4px;
-  border: 1px solid #dbdbdb;
+  border: 1px solid #d6cec0;
   background: white;
 }
 
 :deep(.multiselect.is-active) {
-  border-color: #3273dc;
-  box-shadow: 0 0 0 0.125em rgba(50, 115, 220, 0.25);
+  border-color: #3a4633;
+  box-shadow: 0 0 0 0.125em rgba(58, 70, 51, 0.16);
 }
 
 :deep(.multiselect-error) {
-  border-color: #ff3860 !important;
+  border-color: #9e4a3d !important;
 }
 
 :deep(.multiselect-error.is-active) {
-  box-shadow: 0 0 0 0.125em rgba(255, 56, 96, 0.25) !important;
+  box-shadow: 0 0 0 0.125em rgba(158, 74, 61, 0.18) !important;
 }
 
 :deep(.multiselect-wrapper) {
@@ -152,12 +152,12 @@ defineEmits(['remove']);
 
 :deep(.multiselect-placeholder) {
   padding: 0.5rem 0.75rem;
-  color: #b5b5b5;
+  color: #a0a294;
   font-size: 1rem;
 }
 
 :deep(.multiselect-dropdown) {
-  border: 1px solid #dbdbdb;
+  border: 1px solid #d6cec0;
   border-top: none;
   border-radius: 0 0 4px 4px;
   max-height: 200px;
@@ -171,15 +171,15 @@ defineEmits(['remove']);
 }
 
 :deep(.multiselect-option:hover) {
-  background: #f5f5f5;
+  background: #f4efe4;
 }
 
 :deep(.multiselect-option.is-selected) {
-  background: #3273dc;
+  background: #3a4633;
   color: white;
 }
 
 :deep(.multiselect-option.is-highlighted) {
-  background: #f5f5f5;
+  background: #f4efe4;
 }
 </style>

@@ -3,28 +3,25 @@
 namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
-use App\Http\Requests\ItemRequest;
 use App\Services\ItemService;
-use Illuminate\Http\Request;
+use App\Http\Requests\ItemRequest;
 
 class ItemController extends Controller
 {
-    public function __construct(private ItemService $itemService) {}
+
+    function __construct(private ItemService $itemService)
+    {
+
+    }
 
     /**
      * Display a listing of the resource.
      */
-    public function index(Request $request)
+    public function index()
     {
-        $validated = $request->validate([
-            'per_page' => 'sometimes|integer|min:1|max:100',
-            'search' => 'nullable|string|max:255',
-        ]);
-
-        $items = $this->itemService->getItems(
-            (int) ($validated['per_page'] ?? 10),
-            $validated['search'] ?? null
-        );
+        $perPage = request('per_page', 10);
+        $search = request('search');
+        $items = $this->itemService->getItems($perPage, $search);
 
         return response()->json([
             'message' => 'List of items',
@@ -44,6 +41,7 @@ class ItemController extends Controller
             'item' => $item,
         ]);
     }
+
 
     /**
      * Update the specified resource in storage.
@@ -83,7 +81,7 @@ class ItemController extends Controller
     {
         $item = $this->itemService->getItem($id);
 
-        if (! $item) {
+        if (!$item) {
             return response()->json([
                 'message' => 'Item not found',
             ], 404);

@@ -1010,17 +1010,6 @@ onMounted(async () => {
   padding-top: 0.375rem;
 }
 
-.add-button {
-  background-color: #e6f3ff !important;
-  border-color: #3273dc !important;
-  color: #3273dc !important;
-}
-
-.add-button:hover {
-  background-color: #d1ecf1 !important;
-  border-color: #2366d1 !important;
-}
-
 /* Responsive design */
 @media (max-width: 768px) {
   .item-row {
