@@ -1,14 +1,36 @@
 <script setup>
-// No custom JavaScript needed - the theme's main.js handles dropdown functionality
+// Served from public/ so the logo keeps a stable URL in dev and in builds.
+const logoUrl = '/images/hill-road-catering-logo-white.webp';
 </script>
+
+<style scoped>
+.aside-brand {
+    display: block;
+    width: 100%;
+    max-width: 13.5rem;
+    line-height: 0;
+}
+
+.aside-logo {
+    display: block;
+    width: 100%;
+    height: auto;
+}
+</style>
 
 <template>
 
     <aside class="aside is-placed-left is-expanded">
     <div class="aside-tools">
-        <div>
-        Hilroad <b class="font-black">Catering</b>
-        </div>
+        <router-link to="/" class="aside-brand" aria-label="Hill Road Catering — dashboard">
+        <img
+            :src="logoUrl"
+            alt="Hill Road Catering"
+            class="aside-logo"
+            width="2538"
+            height="965"
+        >
+        </router-link>
     </div>
     <div class="menu is-menu-main">
         <p class="menu-label">General</p>

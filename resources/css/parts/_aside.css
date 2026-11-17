@@ -1,9 +1,13 @@
 .aside {
-  @apply w-60 -left-60 fixed top-0 z-40 h-screen bg-gray-800 transition-all lg:left-0;
+  @apply w-60 -left-60 fixed top-0 z-40 h-screen transition-all lg:left-0;
+  background-color: rgb(58 70 51);
 }
 
 .aside-tools {
-  @apply flex flex-row w-full bg-gray-900 text-white flex-1 px-3 h-14 items-center;
+  @apply flex w-full flex-col items-center justify-center px-5 py-5;
+  background-color: rgb(58 70 51);
+  border-bottom: 1px solid rgb(255 255 255 / 0.12);
+  color: #fff;
 }
 
 .aside-mobile-expanded .aside {
@@ -23,15 +27,20 @@
 }
 
 .menu-label {
-  @apply p-3 text-xs uppercase text-gray-400;
+  @apply p-3 text-xs uppercase;
+  letter-spacing: 0.08em;
+  color: rgb(255 255 255 / 0.62);
 }
 
 .menu-list li a {
-  @apply py-2 flex text-gray-300;
+  @apply py-2 flex;
+  color: rgb(255 255 255 / 0.88);
+  transition: background-color 0.15s ease, color 0.15s ease;
 }
 
-.menu-list li > a {
-  @apply hover:bg-gray-700;
+.menu-list li > a:hover {
+  background-color: rgb(255 255 255 / 0.08);
+  color: #fff;
 }
 
 .menu-list li a .menu-item-label {
@@ -43,7 +52,8 @@
 }
 
 .menu-list li.active > a {
-  @apply bg-gray-700;
+  background-color: rgb(0 0 0 / 0.25);
+  color: #fff;
 }
 
 .menu-list li ul {
@@ -55,6 +65,6 @@
 }
 
 .menu-list li.active ul {
-  @apply block bg-gray-600;
+  @apply block;
+  background-color: rgb(0 0 0 / 0.18);
 }
-
