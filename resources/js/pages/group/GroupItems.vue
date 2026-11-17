@@ -214,13 +214,13 @@ const formatPrice = (price) => {
                   <span class="icon"><i class="mdi mdi-package-variant"></i></span>
                 </td>
                 <td data-label="Name">{{ item.item_name }}</td>
-                <td data-label="Supplier">{{ item.supplier?.name || 'N/A' }}</td>
+                <td data-label="Supplier">{{ item.supplier?.supplier_name || 'N/A' }}</td>
                 <td data-label="Brand">{{ item.default_brand?.name || 'N/A' }}</td>
                 <td data-label="Latest Price">{{ formatPrice(item.latest_price) }}</td>
                 <td data-label="Units">
                   <div class="text-sm">
-                    <div>Ordering: {{ item.ordering_unit?.unit_name || 'N/A' }}</div>
-                    <div>Counting: {{ item.counting_unit?.unit_name || 'N/A' }}</div>
+                    <div>Ordering: {{ item.ordering_unit?.name || 'N/A' }}</div>
+                    <div>Counting: {{ item.counting_unit?.name || 'N/A' }}</div>
                   </div>
                 </td>
                 <td class="actions-cell">
@@ -257,10 +257,10 @@ const formatPrice = (price) => {
                     :class="{ 'is-disabled': isItemDeleting(item.id) }">
                     <div class="font-semibold">{{ item.item_name }}</div>
                     <div class="text-sm text-gray-600 mt-1">
-                      <div>Supplier: {{ item.supplier?.name || 'N/A' }}</div>
+                      <div>Supplier: {{ item.supplier?.supplier_name || 'N/A' }}</div>
                       <div>Brand: {{ item.default_brand?.name || 'N/A' }}</div>
                       <div>Price: {{ formatPrice(item.latest_price) }}</div>
-                      <div>Units: {{ item.ordering_unit?.unit_name || 'N/A' }} / {{ item.counting_unit?.unit_name || 'N/A' }}</div>
+                      <div>Units: {{ item.ordering_unit?.name || 'N/A' }} / {{ item.counting_unit?.name || 'N/A' }}</div>
                     </div>
                   </router-link>
                   <button

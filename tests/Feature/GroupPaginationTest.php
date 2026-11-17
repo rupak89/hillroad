@@ -3,6 +3,7 @@
 namespace Tests\Feature;
 
 use App\Models\Group;
+use App\Models\Item;
 use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Laravel\Sanctum\Sanctum;
@@ -49,5 +50,18 @@ class GroupPaginationTest extends TestCase
             ->assertOk()
             ->assertJsonPath('group.id', $group->id)
             ->assertJsonPath('items.per_page', 25);
+    }
+
+    public function test_group_items_exposes_ordering_and_counting_units(): void
+    {
+        $group = Group::factory()->create();
+        $item = Item::factory()->create(['group_id' => $group->id]);
+        Sanctum::actingAs(User::factory()->create());
+
+        $this->getJson("/api/groups/{$group->id}/items")
+            ->assertOk()
+            ->assertJsonPath('items.data.0.ordering_unit.name', $item->orderingUnit->name)
+            ->assertJsonPath('items.data.0.counting_unit.name', $item->countingUnit->name)
+            ->assertJsonPath('items.data.0.supplier.supplier_name', $item->supplier->supplier_name);
     }
 }
