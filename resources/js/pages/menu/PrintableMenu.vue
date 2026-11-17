@@ -1,210 +1,155 @@
 <template>
   <div class="printable-menu">
-    <!-- Print Header -->
-    <div v-if="menu" class="print-header no-print card">
-      <div class="level">
-        <div class="level-left">
-          <header class="card-header">
-            <p class="card-header-title">
-            <span class="icon"><i class="mdi mdi-food"></i></span>
-            {{ menu.menu_name }}
-            </p>
-            <div class="level-right">
-            <button @click="printMenu" class="button is-primary">
-                <span class="icon">
-                <i class="mdi mdi-printer"></i>
-                </span>
-                <span>Print Menu</span>
-            </button>
-            </div>
-          </header>
-        </div>
-
-      </div>
+    <!-- Screen-only toolbar -->
+    <div v-if="menu" class="print-toolbar no-print">
+      <router-link to="/menus" class="back-link">
+        <span class="icon"><i class="mdi mdi-arrow-left"></i></span>
+        <span>All menus</span>
+      </router-link>
+      <button type="button" class="print-button" @click="printMenu">
+        <span class="icon"><i class="mdi mdi-printer"></i></span>
+        <span>Print menu</span>
+      </button>
     </div>
 
     <!-- Loading State -->
-    <div v-if="isLoading" class="box has-text-centered">
+    <div v-if="isLoading" class="doc-state" role="status">
       <div class="spinner"></div>
-      <p>Loading menu...</p>
+      <p>Preparing your menu…</p>
     </div>
 
     <!-- Error State -->
-    <div v-else-if="error" class="box has-background-danger-light">
-      <p class="has-text-danger">{{ error }}</p>
+    <div v-else-if="error" class="doc-state doc-state-error">
+      <span class="state-icon"><i class="mdi mdi-alert-circle-outline"></i></span>
+      <p>{{ error }}</p>
+      <button type="button" class="print-button" @click="fetchPrintableMenu">Try again</button>
     </div>
 
-    <!-- Menu Content -->
-    <div v-else-if="menu" class="menu-content">
-      <!-- Menu Header -->
-      <div class="menu-header has-text-centered mb-1">
-        <h1 class="title is-1 has-text-primary mb-3">{{ menu.menu_name }}</h1>
-        <p v-if="menu.description" class="subtitle is-4 has-text-grey-dark mb-4">{{ menu.description }}</p>
+    <!-- Menu Document -->
+    <article v-else-if="menu" class="menu-document">
+      <div class="brand-band">
+        <img
+          :src="logoUrl"
+          alt="Hill Road Catering"
+          class="brand-logo"
+          width="2538"
+          height="965"
+        >
+        <span class="brand-rule" aria-hidden="true"></span>
+        <h1 class="menu-title">{{ menu.menu_name }}</h1>
+        <p v-if="menu.description" class="menu-description">{{ menu.description }}</p>
 
-        <div class="event-info">
-          <div class="info-cards-row">
-            <div class="info-card">
-              <span class="icon is-large has-text-primary">
-                <i class="mdi mdi-account-group mdi-36px"></i>
-              </span>
-              <div class="info-content">
-                <p class="heading">Event Size</p>
-                <p class="title is-4 has-text-primary">{{ menu.target_head_count }} Guests</p>
-              </div>
-            </div>
-            <div class="info-card">
-              <span class="icon is-large has-text-success">
-                <i class="mdi mdi-currency-usd mdi-36px"></i>
-              </span>
-              <div class="info-content">
-                <p class="heading">Per Person (incl. GST)</p>
-                <p class="title is-4 has-text-success">{{ menu.pricing.formatted_price_per_person }}</p>
-              </div>
-            </div>
-            <div class="info-card">
-              <span class="icon is-large has-text-info">
-                <i class="mdi mdi-calculator mdi-36px"></i>
-              </span>
-              <div class="info-content">
-                <p class="heading">Total Event (incl. GST)</p>
-                <p class="title is-4 has-text-info">{{ menu.pricing.formatted_total_price }}</p>
-              </div>
-            </div>
+        <div class="event-meta">
+          <div class="meta-item">
+            <span class="meta-label">Event size</span>
+            <span class="meta-value">{{ menu.target_head_count }} <small>guests</small></span>
+          </div>
+          <div class="meta-item">
+            <span class="meta-label">Per guest</span>
+            <span class="meta-value">{{ menu.pricing.formatted_price_per_person }}</span>
+          </div>
+          <div class="meta-item">
+            <span class="meta-label">Event total</span>
+            <span class="meta-value">{{ menu.pricing.formatted_total_price }}</span>
           </div>
         </div>
       </div>
 
-      <!-- Menu Segments -->
-      <div class="menu-segments">
-        <div
+      <div class="doc-body">
+        <section
           v-for="(segment, segmentIndex) in menu.segments"
           :key="segment.id"
-          class="segment-section mb-6"
+          class="segment-section"
         >
-          <div class="segment-header">
-            <h2 class="title is-3 has-text-primary has-text-centered segment-title">
-              <span class="segment-number">{{ segmentIndex + 1 }}.</span>
-              {{ segment.name }}
-            </h2>
-            <div class="segment-divider"></div>
+          <div class="segment-heading">
+            <span class="segment-index">{{ String(segmentIndex + 1).padStart(2, '0') }}</span>
+            <h2 class="segment-name">{{ segment.name }}</h2>
+            <span class="segment-rule" aria-hidden="true"></span>
           </div>
 
-          <div class="segment-items">
-            <table class="table is-fullwidth is-hoverable items-table">
+          <div class="table-wrap">
+            <table class="items-table">
               <thead>
                 <tr>
-                  <th class="item-name-header">Item</th>
-                  <th class="quantity-header">Quantity</th>
-                  <th class="price-header">Price per Person (incl. GST)</th>
-                  <th class="total-header">Total ({{ menu.target_head_count }} guests)</th>
-                  <th class="notes-header">Notes</th>
+                  <th scope="col" class="item-name-header">Dish</th>
+                  <th scope="col" class="quantity-header">Qty</th>
+                  <th scope="col" class="price-header">Per guest</th>
+                  <th scope="col" class="total-header">Total</th>
+                  <th scope="col" class="notes-header">Notes</th>
                 </tr>
               </thead>
               <tbody>
-                <tr
-                  v-for="item in segment.items"
-                  :key="item.id"
-                  class="item-row"
-                >
+                <tr v-for="item in segment.items" :key="item.id">
                   <td class="item-name-cell">
-                    <div class="item-name-content">
-                      <span class="icon is-small has-text-primary">
-                        <i class="mdi mdi-chef-hat"></i>
-                      </span>
-                      <strong>{{ item.recipe_name }}</strong>
-                    </div>
+                    <span class="item-name">{{ item.recipe_name }}</span>
                   </td>
                   <td class="quantity-cell">
                     <span class="quantity-badge">{{ item.formatted_quantity }}</span>
                   </td>
-                  <td class="price-cell">
-                    <span class="price-amount">{{ item.formatted_price_per_person }}</span>
-                  </td>
-                  <td class="total-cell">
-                    <span class="total-amount">{{ item.formatted_total_price }}</span>
-                  </td>
+                  <td class="price-cell">{{ item.formatted_price_per_person }}</td>
+                  <td class="total-cell"><strong>{{ item.formatted_total_price }}</strong></td>
                   <td class="notes-cell">
-                    <div v-if="item.notes" class="notes-content">
-                      <span class="icon is-small has-text-info">
-                        <i class="mdi mdi-note-text"></i>
-                      </span>
-                      <span class="notes-text">{{ item.notes }}</span>
-                    </div>
-                    <span v-else class="has-text-grey-light">—</span>
+                    <template v-if="item.notes">{{ item.notes }}</template>
+                    <span v-else class="empty-note">—</span>
                   </td>
                 </tr>
               </tbody>
             </table>
           </div>
-        </div>
-      </div>
+        </section>
 
-      <!-- Grand Total Section -->
-      <div class="grand-total-section mt-6">
-        <div class="grand-total-card">
-          <div class="columns is-vcentered">
-            <div class="column">
-              <h3 class="title is-3 has-text-white mb-2">
-                <span class="icon">
-                  <i class="mdi mdi-star"></i>
-                </span>
-                Complete Event Package
-              </h3>
-              <p class="subtitle is-5 has-text-white-bis">
-                Premium catering service for {{ menu.target_head_count }} guests
-              </p>
+        <!-- Grand Total -->
+        <div class="grand-total">
+          <div class="gt-copy">
+            <p class="gt-eyebrow">Complete event package</p>
+            <h3 class="gt-title">Served for {{ menu.target_head_count }} guests</h3>
+            <p class="gt-sub">Premium catering prepared in-house, from first canapé to final course.</p>
+          </div>
+          <div class="gt-pricing">
+            <div class="gt-line">
+              <span>Per guest</span>
+              <span>{{ menu.pricing.formatted_price_per_person }}</span>
             </div>
-            <div class="column is-narrow">
-              <div class="price-breakdown">
-                <div class="price-line">
-                  <span class="price-label">Per Person:</span>
-                  <span class="price-value">{{ menu.pricing.formatted_price_per_person }}</span>
-                </div>
-                <div class="price-line" v-if="menu.pricing.gst?.registered">
-                  <span class="price-label">Includes {{ menu.pricing.gst.rate }}% GST:</span>
-                  <span class="price-value">{{ menu.pricing.gst.formatted_amount_total }}</span>
-                </div>
-                <div class="price-line main-price">
-                  <span class="price-label">Grand Total:</span>
-                  <span class="price-value">{{ menu.pricing.formatted_total_price }}</span>
-                </div>
-              </div>
+            <div v-if="menu.pricing.gst?.registered" class="gt-line">
+              <span>Includes GST ({{ menu.pricing.gst.rate }}%)</span>
+              <span>{{ menu.pricing.gst.formatted_amount_total }}</span>
+            </div>
+            <div class="gt-line gt-line-total">
+              <span>Event total</span>
+              <span>{{ menu.pricing.formatted_total_price }}</span>
             </div>
           </div>
         </div>
-      </div>
 
-      <!-- Footer -->
-      <div class="menu-footer has-text-centered mt-6">
-        <div class="footer-content">
-          <p class="subtitle is-6 has-text-grey">
-            <span class="icon">
-              <i class="mdi mdi-chef-hat"></i>
-            </span>
-            <em>Crafted with premium ingredients and professional service</em>
-          </p>
-          <p v-if="menu.pricing.gst" class="has-text-grey mt-2">
-            <span class="icon is-small">
-              <i class="mdi mdi-receipt"></i>
-            </span>
+        <p class="doc-note">
+          <template v-if="menu.pricing.gst?.note">
             {{ menu.pricing.gst.note }}
-          </p>
-          <p class="has-text-grey-light mt-2">
-            <span class="icon is-small">
-              <i class="mdi mdi-calendar"></i>
-            </span>
-            Generated on {{ new Date().toLocaleDateString() }}
+            <span class="note-sep" aria-hidden="true">·</span>
+          </template>
+          Prices in NZD.
+        </p>
+
+        <!-- Footer -->
+        <div class="doc-footer">
+          <p class="footer-tagline">Crafted with premium ingredients and professional service</p>
+          <p class="footer-meta">
+            Hill Road Catering
+            <span aria-hidden="true">·</span>
+            Menu prepared {{ generatedDate }}
           </p>
         </div>
       </div>
-    </div>
+    </article>
   </div>
 </template>
 
 <script setup>
-import { ref, onMounted } from 'vue'
+import { ref, computed, onMounted } from 'vue'
 import { useRoute } from 'vue-router'
 import axios from 'axios'
+
+// Served from public/ so the logo keeps a stable URL in dev and in builds.
+const logoUrl = '/images/hill-road-catering-logo-white.webp'
 
 const route = useRoute()
 
@@ -212,6 +157,14 @@ const route = useRoute()
 const menu = ref(null)
 const isLoading = ref(false)
 const error = ref(null)
+
+const generatedDate = computed(() =>
+  new Date().toLocaleDateString('en-NZ', {
+    day: 'numeric',
+    month: 'long',
+    year: 'numeric',
+  })
+)
 
 // Methods
 const fetchPrintableMenu = async () => {
@@ -242,749 +195,959 @@ onMounted(async () => {
 
 <style scoped>
 .printable-menu {
-  /* The printable view is a self-contained quote, so define the theme
-     colours it references instead of relying on Bulma variables that are
-     not loaded by the admin theme. */
-  --bulma-primary: #1e40af;
-  --bulma-primary-light: #60a5fa;
-  --bulma-primary-dark: #1e3a8a;
-  --bulma-info: #0284c7;
-  --bulma-success: #15803d;
-  --bulma-dark: #1f2937;
-  --bulma-grey: #6b7280;
-  --bulma-grey-darker: #374151;
-  --bulma-grey-lighter: #e5e7eb;
+  /* Brand palette */
+  --hr-green: #3a4633;
+  --hr-green-deep: #2e392a;
+  --hr-cream: #f4efe4;
+  --hr-cream-deep: #e5ddcc;
+  --hr-line: #e6e0d3;
+  --hr-ink: #2b2f27;
+  --hr-muted: #6c7264;
 
-  max-width: 900px;
+  --doc-serif: Georgia, 'Times New Roman', 'Iowan Old Style', serif;
+  --doc-sans: ui-sans-serif, system-ui, -apple-system, 'Segoe UI', Roboto,
+    'Helvetica Neue', Arial, sans-serif;
+
+  max-width: 1000px;
+  margin: 0 auto 2.5rem;
+  color: var(--hr-ink);
+  font-family: var(--doc-sans);
+}
+
+/* ---------- Screen toolbar ---------- */
+.print-toolbar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+  margin-bottom: 1rem;
+}
+
+.back-link {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.3rem;
+  color: #5f6657;
+  font-size: 0.72rem;
+  font-weight: 600;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  text-decoration: none;
+}
+
+.back-link .icon {
+  width: auto;
+  height: auto;
+  font-size: 1rem;
+}
+
+.back-link:hover {
+  color: var(--hr-green);
+}
+
+.print-button {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.45rem;
+  padding: 0.55rem 1.1rem;
+  border: 1px solid var(--hr-green);
+  border-radius: 3px;
+  background: var(--hr-green);
+  color: #fff;
+  font-family: var(--doc-sans);
+  font-size: 0.72rem;
+  font-weight: 600;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  cursor: pointer;
+  transition: background-color 0.2s ease, border-color 0.2s ease;
+}
+
+.print-button .icon {
+  width: auto;
+  height: auto;
+  font-size: 1rem;
+}
+
+.print-button:hover {
+  background: var(--hr-green-deep);
+  border-color: var(--hr-green-deep);
+}
+
+/* ---------- Document shell ---------- */
+.menu-document {
+  overflow: hidden;
+  border-radius: 8px;
+  background: #fff;
+  box-shadow: 0 24px 60px -36px rgba(29, 37, 25, 0.55);
+}
+
+/* ---------- Brand band ---------- */
+.brand-band {
+  padding: 2.4rem 3rem 2rem;
+  background:
+    radial-gradient(130% 130% at 82% -20%, rgba(255, 255, 255, 0.13), rgba(255, 255, 255, 0) 55%),
+    linear-gradient(140deg, #3a4633 0%, #33402d 55%, #2c3727 100%);
+  color: #fff;
+  text-align: center;
+}
+
+.brand-logo {
+  display: block;
+  width: 210px;
+  max-width: 60%;
+  height: auto;
   margin: 0 auto;
-  padding: 20px;
-  font-family: 'Georgia', serif;
 }
 
-.menu-header {
-  border-bottom: 4px solid var(--bulma-primary);
-  padding-bottom: 0.4rem;
-  margin-bottom: 0.2rem;
+.brand-rule {
+  display: block;
+  width: 48px;
+  height: 1px;
+  margin: 1.35rem auto 1.15rem;
+  background: rgba(245, 240, 230, 0.45);
 }
 
-.event-info {
-  margin-bottom: 0.5rem;
+.menu-title {
+  margin: 0;
+  color: #fff;
+  font-family: var(--doc-serif);
+  font-size: 2.35rem;
+  font-weight: 400;
+  line-height: 1.15;
+  letter-spacing: 0.005em;
 }
 
-.info-cards-row {
+.menu-description {
+  max-width: 570px;
+  margin: 0.7rem auto 0;
+  color: rgba(245, 240, 230, 0.78);
+  font-size: 0.92rem;
+  line-height: 1.65;
+}
+
+.event-meta {
   display: flex;
   justify-content: center;
-  align-items: center;
-  gap: 1.5rem;
-  flex-wrap: nowrap;
+  max-width: 640px;
+  margin: 1.7rem auto 0;
+  padding-top: 1.25rem;
+  border-top: 1px solid rgba(245, 240, 230, 0.18);
 }
 
-.info-card {
+.meta-item {
+  flex: 1;
+  padding: 0 1.25rem;
+  border-right: 1px solid rgba(245, 240, 230, 0.18);
+}
+
+.meta-item:last-child {
+  border-right: 0;
+}
+
+.meta-label {
+  display: block;
+  margin-bottom: 0.4rem;
+  color: rgba(245, 240, 230, 0.7);
+  font-size: 0.6rem;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+}
+
+.meta-value {
+  display: block;
+  color: #fff;
+  font-family: var(--doc-serif);
+  font-size: 1.28rem;
+  line-height: 1.2;
+  white-space: nowrap;
+}
+
+.meta-value small {
+  color: rgba(245, 240, 230, 0.65);
+  font-family: var(--doc-sans);
+  font-size: 0.7rem;
+}
+
+/* ---------- Body ---------- */
+.doc-body {
+  padding: 2.4rem 3rem 2.2rem;
+}
+
+/* ---------- Segments ---------- */
+.segment-section {
+  margin: 0 0 1.9rem;
+}
+
+.segment-section:last-of-type {
+  margin-bottom: 1.4rem;
+}
+
+.segment-heading {
   display: flex;
   align-items: center;
-  background: white;
-  padding: 1.25rem;
-  border-radius: 12px;
-  box-shadow: 0 4px 12px rgba(0,0,0,0.1);
-  min-width: 220px;
-  flex: 1;
-  max-width: 280px;
-  transition: all 0.3s ease;
+  gap: 0.85rem;
+  margin-bottom: 0.85rem;
 }
 
-.info-card:hover {
-  transform: translateY(-2px);
-  box-shadow: 0 6px 16px rgba(0,0,0,0.15);
+.segment-index {
+  flex: none;
+  padding: 0.24rem 0.5rem;
+  border: 1px solid var(--hr-cream-deep);
+  border-radius: 999px;
+  background: var(--hr-cream);
+  color: var(--hr-green);
+  font-size: 0.62rem;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  line-height: 1;
 }
 
-.info-content {
-  margin-left: 1rem;
-  text-align: left;
-  flex: 1;
-}
-
-.info-content .heading {
-  margin-bottom: 0.25rem;
-  font-size: 0.875rem;
-  font-weight: 500;
-  text-transform: uppercase;
-  letter-spacing: 0.5px;
-  color: var(--bulma-grey);
-}
-
-.info-content .title {
+.segment-name {
+  flex: none;
   margin: 0;
+  color: var(--hr-green);
+  font-family: var(--doc-serif);
+  font-size: 1.4rem;
+  font-weight: 400;
   line-height: 1.2;
 }
 
-.segment-header {
-  margin-bottom: 0.5rem;
+.segment-rule {
+  flex: 1;
+  height: 1px;
+  background: linear-gradient(to right, var(--hr-cream-deep), rgba(229, 221, 204, 0));
 }
 
-.segment-header {
-  margin-bottom: 0.5rem;
+/* ---------- Items table ---------- */
+.table-wrap {
+  overflow-x: auto;
 }
 
-.segment-title {
-  position: relative;
-  padding-bottom: 1rem;
-}
-
-.segment-number {
-  color: var(--bulma-primary);
-  font-weight: bold;
-  margin-right: 0.5rem;
-}
-
-.segment-divider {
-  height: 2px;
-  background: linear-gradient(to right, var(--bulma-primary), var(--bulma-primary-light), transparent);
-  margin: 0 auto;
-  width: 60%;
-}
-
-.segment-items {
-  margin-bottom: 0.5rem;
-}
-
-/* Table Styles */
 .items-table {
-  background: white;
-  border-radius: 12px;
-  overflow: hidden;
-  box-shadow: 0 4px 12px rgba(0,0,0,0.08);
-  border: none !important;
+  display: table;
+  width: 100%;
+  min-width: 600px;
+  border-collapse: collapse;
 }
 
 .items-table thead {
-  background: linear-gradient(135deg, var(--bulma-primary), var(--bulma-primary-light));
+  display: table-header-group;
 }
 
-  .items-table thead th {
-    color: #333 !important;
-    font-weight: 600 !important;
-    padding: 5px 4px !important;
-    border: 1px solid #ddd !important;
-    font-size: 11px !important;
-    text-align: center !important;
-    white-space: nowrap !important;
-    overflow: hidden !important;
-    display: table-cell !important;
-    background: #f5f5f5 !important;
-  }.item-name-header {
-  text-align: left !important;
-  width: 30%;
+.items-table tbody {
+  display: table-row-group;
 }
 
-.quantity-header {
-  width: 15%;
+.items-table tr {
+  display: table-row;
+  border: 0;
 }
 
-.price-header {
-  width: 20%;
+.items-table th,
+.items-table td {
+  display: table-cell;
 }
 
-.total-header {
-  width: 20%;
+.items-table th {
+  padding: 0.62rem 0.7rem;
+  border-top: 1px solid var(--hr-cream-deep);
+  border-bottom: 1px solid var(--hr-cream-deep);
+  background: var(--hr-cream);
+  color: #59634f;
+  font-size: 0.6rem;
+  font-weight: 700;
+  letter-spacing: 0.14em;
+  text-align: left;
+  text-transform: uppercase;
 }
 
-.notes-header {
-  width: 15%;
+.items-table td {
+  padding: 0.68rem 0.7rem;
+  border-bottom: 1px solid #eee9dd;
+  color: var(--hr-ink);
+  font-size: 0.84rem;
+  text-align: left;
+  vertical-align: middle;
 }
 
 .items-table tbody tr {
-  border-bottom: 1px solid #f5f5f5;
-  transition: all 0.3s ease;
+  background: #fff;
 }
 
-.items-table tbody tr:hover {
-  background-color: #f8f9fa;
-  transform: translateY(-1px);
-  box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+.items-table tbody tr:nth-child(even) {
+  background: #fcfaf5;
 }
 
-.items-table tbody tr:last-child {
-  border-bottom: none;
+.items-table tbody tr:hover td {
+  background-color: transparent;
 }
 
-.items-table tbody td {
-  padding: 1.25rem 1rem;
-  border: none !important;
-  vertical-align: middle;
+.items-table tbody tr td:before {
+  content: none;
+}
+
+.item-name-header,
+.item-name-cell {
+  width: 35%;
 }
 
 .item-name-cell {
   text-align: left;
 }
 
-.item-name-content {
-  display: flex;
-  align-items: center;
-  font-size: 1.1rem;
-  font-weight: 600;
-  color: var(--bulma-dark);
+.item-name {
+  color: var(--hr-ink);
+  font-family: var(--doc-serif);
+  font-size: 0.98rem;
 }
 
-.item-name-content .icon {
-  margin-right: 0.75rem;
+.quantity-header,
+.quantity-cell {
+  width: 11%;
 }
 
+.quantity-header,
 .quantity-cell {
   text-align: center;
 }
 
 .quantity-badge {
-  background: var(--bulma-primary-light);
-  color: var(--bulma-primary-dark);
-  padding: 0.4rem 0.8rem;
-  border-radius: 6px;
-  font-weight: 500;
-  font-size: 0.9rem;
+  display: inline-block;
+  padding: 0.14rem 0.48rem;
+  white-space: nowrap;
+  border-radius: 3px;
+  background: var(--hr-cream);
+  color: #55604b;
+  font-size: 0.7rem;
+  font-weight: 600;
+  letter-spacing: 0.02em;
+}
+
+.price-header,
+.price-cell {
+  width: 17%;
+  text-align: right;
 }
 
 .price-cell {
-  text-align: center;
+  color: #5d6556;
+  font-size: 0.82rem;
 }
 
-.price-amount {
-  font-size: 1.25rem;
-  font-weight: bold;
-  color: var(--bulma-success);
-}
-
+.total-header,
 .total-cell {
-  text-align: center;
+  width: 17%;
+  text-align: right;
 }
 
-.total-amount {
-  font-size: 1.25rem;
-  font-weight: bold;
-  color: var(--bulma-info);
+.total-cell strong {
+  color: var(--hr-green);
+  font-weight: 600;
+}
+
+.notes-header,
+.notes-cell {
+  width: 20%;
 }
 
 .notes-cell {
+  color: var(--hr-muted);
+  font-size: 0.76rem;
+  font-style: italic;
+  line-height: 1.45;
+}
+
+.empty-note {
+  color: #b7b3a8;
+  font-style: normal;
+}
+
+/* ---------- Grand total ---------- */
+.grand-total {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 2rem;
+  padding: 1.8rem 2rem;
+  border-radius: 4px;
+  background: linear-gradient(120deg, var(--hr-green) 0%, #303b2b 100%);
+  color: #fff;
+}
+
+.gt-copy {
+  max-width: 50%;
+}
+
+.gt-eyebrow {
+  margin: 0 0 0.45rem;
+  color: rgba(245, 240, 230, 0.62);
+  font-size: 0.6rem;
+  letter-spacing: 0.2em;
+  text-transform: uppercase;
+}
+
+.gt-title {
+  margin: 0;
+  color: #fff;
+  font-family: var(--doc-serif);
+  font-size: 1.45rem;
+  font-weight: 400;
+  line-height: 1.25;
+}
+
+.gt-sub {
+  margin: 0.5rem 0 0;
+  color: rgba(245, 240, 230, 0.7);
+  font-size: 0.78rem;
+  line-height: 1.5;
+}
+
+.gt-pricing {
+  flex: none;
+  width: 260px;
+  font-variant-numeric: tabular-nums;
+}
+
+.gt-line {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 1rem;
+  padding: 0.28rem 0;
+  color: rgba(255, 255, 255, 0.82);
+  font-size: 0.8rem;
+}
+
+.gt-line-total {
+  margin-top: 0.45rem;
+  padding-top: 0.55rem;
+  border-top: 1px solid rgba(245, 240, 230, 0.25);
+  color: #fff;
+  font-size: 0.72rem;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+}
+
+.gt-line-total span:last-child {
+  font-family: var(--doc-serif);
+  font-size: 1.65rem;
+  letter-spacing: 0;
+  line-height: 1;
+  text-transform: none;
+}
+
+/* ---------- Notes & footer ---------- */
+.doc-note {
+  margin: 1rem 0 0;
+  color: var(--hr-muted);
+  font-size: 0.7rem;
+  line-height: 1.6;
+}
+
+.note-sep {
+  padding: 0 0.35rem;
+}
+
+.doc-footer {
+  margin-top: 1.8rem;
+  padding-top: 1.2rem;
+  border-top: 1px solid var(--hr-line);
   text-align: center;
 }
 
-.notes-content {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  font-size: 0.9rem;
-}
-
-.notes-content .icon {
-  margin-right: 0.5rem;
-}
-
-.notes-text {
+.footer-tagline {
+  margin: 0;
+  color: var(--hr-green);
+  font-family: var(--doc-serif);
+  font-size: 0.92rem;
   font-style: italic;
-  color: var(--bulma-grey-darker);
-  max-width: 150px;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
 }
 
-.grand-total-section {
-  margin-top: 3rem;
+.footer-meta {
+  margin: 0.5rem 0 0;
+  color: var(--hr-muted);
+  font-size: 0.62rem;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
 }
 
-.grand-total-card {
-  background: linear-gradient(135deg, var(--bulma-primary), var(--bulma-info));
-  padding: 2rem;
-  border-radius: 16px;
-  box-shadow: 0 8px 24px rgba(0,0,0,0.15);
+.footer-meta span {
+  padding: 0 0.4rem;
 }
 
-.price-breakdown {
-  background: rgba(255,255,255,0.1);
-  padding: 1.5rem;
-  border-radius: 12px;
-  backdrop-filter: blur(10px);
+/* ---------- Loading & error ---------- */
+.doc-state {
+  padding: 3rem;
+  border-radius: 8px;
+  background: #fff;
+  box-shadow: 0 24px 60px -36px rgba(29, 37, 25, 0.55);
+  color: var(--hr-muted);
+  text-align: center;
 }
 
-.price-line {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  margin-bottom: 0.75rem;
-  color: white;
+.doc-state p {
+  margin-top: 0.75rem;
 }
 
-.price-line:last-child {
-  margin-bottom: 0;
+.doc-state-error {
+  color: #8a3a33;
 }
 
-.price-line.main-price {
-  border-top: 2px solid rgba(255,255,255,0.3);
-  padding-top: 0.75rem;
-  font-size: 1.25rem;
-  font-weight: bold;
-}
-
-.price-line .price-label {
-  font-size: 1rem;
-  opacity: 0.9;
-}
-
-.price-line .price-value {
-  font-size: 1.5rem;
-  font-weight: bold;
-}
-
-.menu-footer {
-  margin-top: 3rem;
-  padding-top: 2rem;
-  border-top: 2px solid var(--bulma-grey-lighter);
-}
-
-.footer-content {
-  opacity: 0.8;
+.state-icon {
+  color: #b4453d;
+  font-size: 2rem;
 }
 
 .spinner {
-  width: 40px;
-  height: 40px;
-  border: 4px solid #f3f3f3;
-  border-top: 4px solid var(--bulma-primary);
+  width: 34px;
+  height: 34px;
+  margin: 0 auto;
+  border: 3px solid var(--hr-cream);
+  border-top-color: var(--hr-green);
   border-radius: 50%;
   animation: spin 1s linear infinite;
-  margin: 0 auto 1rem;
 }
 
 @keyframes spin {
-  0% { transform: rotate(0deg); }
-  100% { transform: rotate(360deg); }
+  to {
+    transform: rotate(360deg);
+  }
 }
 
-/* Print Styles */
-@media print {
-  /* Hide all navigation and UI elements */
-  .no-print,
-  nav,
-  .navbar,
-  .navbar-brand,
-  .navbar-menu,
-  .navbar-burger,
-  .breadcrumb,
-  .pagination,
-  .tabs,
-  .button,
-  .dropdown,
-  .modal,
-  .notification,
-  .level,
-  .hero,
-  header,
-  footer,
-  aside,
-  .sidebar,
-  .menu,
-  .panel {
-    display: none !important;
+/* ---------- Responsive ---------- */
+@media (max-width: 860px) {
+  .brand-band {
+    padding: 1.9rem 1.5rem 1.6rem;
   }
 
-  /* Hide any elements with common navigation classes */
-  .nav,
-  .navigation,
-  .header,
-  .top-bar,
-  .menu-bar,
-  .hamburger,
-  .burger,
-  .toggle,
-  .mobile-menu {
-    display: none !important;
+  .menu-title {
+    font-size: 1.9rem;
   }
 
-  /* Ensure table content is visible */
-  .segment-items table,
-  .items-table,
-  .table {
-    display: table !important;
-    visibility: visible !important;
+  .event-meta {
+    flex-wrap: wrap;
+    gap: 0.9rem 0;
   }
 
-  .items-table thead,
-  .table thead {
-    display: table-header-group !important;
+  .meta-item {
+    flex: 1 1 33.333%;
+    padding: 0 0.6rem;
   }
 
-  .items-table tbody,
-  .table tbody {
-    display: table-row-group !important;
+  .doc-body {
+    padding: 1.8rem 1.5rem 1.6rem;
   }
 
-  .items-table tr,
-  .table tr {
-    display: table-row !important;
+  .grand-total {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 1.2rem;
   }
 
-  .items-table th,
-  .items-table td,
-  .table th,
-  .table td {
-    display: table-cell !important;
+  .gt-copy {
+    max-width: none;
   }
 
-  /* Reset page layout for print */
-  * {
-    -webkit-print-color-adjust: exact !important;
-    print-color-adjust: exact !important;
+  .gt-pricing {
+    width: 100%;
+  }
+}
+
+@media (max-width: 560px) {
+  .brand-logo {
+    width: 170px;
   }
 
-  html, body {
-    margin: 0 !important;
-    padding: 0 !important;
-    background: white !important;
-    font-size: 11px !important;
-    line-height: 1.3 !important;
+  .menu-title {
+    font-size: 1.6rem;
   }
 
-  .printable-menu {
-    max-width: none !important;
-    margin: 0 !important;
-    padding: 12px !important;
-    background: white !important;
+  .menu-description {
+    font-size: 0.85rem;
   }
 
-  /* Header adjustments */
-  .menu-header {
-    margin-bottom: 1rem !important;
-    padding-bottom: 0.75rem !important;
-    border-bottom: 2px solid #333 !important;
+  .event-meta {
+    gap: 0;
   }
 
-  .menu-header .title {
-    font-size: 22px !important;
-    margin-bottom: 6px !important;
+  .meta-item {
+    flex: 1 1 100%;
+    padding: 0.55rem 0;
+    border-right: 0;
+    border-bottom: 1px solid rgba(245, 240, 230, 0.15);
   }
 
-  .menu-header .subtitle {
-    font-size: 14px !important;
-    margin-bottom: 6px !important;
-  }  /* Info cards in single row for print */
-  .event-info {
-    margin-bottom: 1rem !important;
+  .meta-item:last-child {
+    border-bottom: 0;
   }
 
-  .info-cards-row {
-    display: flex !important;
-    justify-content: center !important;
-    gap: 12px !important;
-    flex-wrap: nowrap !important;
+  .segment-name {
+    font-size: 1.15rem;
   }
 
-  .info-card {
-    break-inside: avoid !important;
-    box-shadow: none !important;
-    border: 1px solid #ddd !important;
-    margin: 0 !important;
-    padding: 8px !important;
-    min-width: 140px !important;
-    max-width: 180px !important;
-    flex: 1 !important;
-    background: white !important;
+  .doc-body {
+    padding: 1.4rem 1rem 1.2rem;
   }
 
-  .info-card .icon {
-    color: #333 !important;
+  .print-toolbar {
+    gap: 0.5rem;
   }
 
-  .info-content {
-    margin-left: 8px !important;
+  .print-button {
+    padding: 0.5rem 0.8rem;
+  }
+}
+
+/* ---------- Narrow screens: turn the price table into stacked cards ---------- */
+@media (max-width: 620px) {
+  .table-wrap {
+    overflow: visible;
   }
 
-  .info-content .heading {
-    font-size: 10px !important;
-    color: #666 !important;
-    margin-bottom: 3px !important;
-  }
-
-  .info-content .title {
-    font-size: 14px !important;
-    color: #333 !important;
-    margin: 0 !important;
-  }
-
-  /* Items table for print */
   .items-table {
-    background: white !important;
-    border: 1px solid #ddd !important;
-    margin-bottom: 12px !important;
-    width: 100% !important;
-    border-radius: 0 !important;
-    box-shadow: none !important;
-    table-layout: fixed !important;
-    border-collapse: collapse !important;
-    display: table !important;
+    display: block;
+    min-width: 0;
   }
 
   .items-table thead {
-    background: #f5f5f5 !important;
-    display: table-header-group !important;
+    display: none;
   }
 
   .items-table tbody {
-    display: table-row-group !important;
+    display: block;
   }
 
   .items-table tr {
-    display: table-row !important;
+    display: grid;
+    grid-template-areas:
+      'name name name'
+      'qty price total'
+      'notes notes notes';
+    grid-template-columns: repeat(3, 1fr);
+    row-gap: 0.45rem;
+    margin-bottom: 0.5rem;
+    padding: 0.85rem 0.9rem;
+    border: 1px solid #eee9dd;
+    border-radius: 4px;
+    background: #fff;
   }
 
-  .items-table th,
+  .items-table tbody tr:nth-child(even) {
+    background: #fcfaf5;
+  }
+
+  .items-table tbody tr:last-child {
+    margin-bottom: 0;
+  }
+
   .items-table td {
-    display: table-cell !important;
+    display: block;
+    width: auto;
+    padding: 0;
+    border: 0;
   }
 
-  /* Ensure table content is visible */
-  .segment-items table,
-  .items-table,
-  .items-table *,
-  .table,
-  .table * {
-    display: initial !important;
-    visibility: visible !important;
-  }
-
-  .item-name-header {
-    width: 35% !important;
-    text-align: left !important;
-  }
-
-  .quantity-header {
-    width: 15% !important;
-  }
-
-  .price-header {
-    width: 20% !important;
-  }
-
-  .total-header {
-    width: 20% !important;
-  }
-
-  .notes-header {
-    width: 10% !important;
-  }
-
-  .items-table tbody tr {
-    break-inside: avoid !important;
-    page-break-inside: avoid !important;
-    height: 26px !important;
-    max-height: 26px !important;
-    display: table-row !important;
-  }
-
-  .items-table tbody td {
-    padding: 4px 3px !important;
-    border: 1px solid #ddd !important;
-    font-size: 11px !important;
-    color: #333 !important;
-    text-align: center !important;
-    vertical-align: middle !important;
-    white-space: nowrap !important;
-    overflow: hidden !important;
-    text-overflow: ellipsis !important;
-    height: 26px !important;
-    max-height: 26px !important;
-    line-height: 1.3 !important;
-    display: table-cell !important;
+  .items-table tbody tr td:before {
+    padding-right: 0;
   }
 
   .item-name-cell {
-    text-align: left !important;
-    padding-left: 6px !important;
+    grid-area: name;
+    margin-bottom: 0.15rem;
   }
 
-  .item-name-content {
-    font-size: 11px !important;
-    display: inline !important;
-    white-space: nowrap !important;
-    overflow: hidden !important;
-    text-overflow: ellipsis !important;
+  .item-name {
+    font-size: 1.02rem;
   }
 
-  .item-name-content .icon {
-    display: none !important;
+  .quantity-cell {
+    grid-area: qty;
+    text-align: left;
   }
 
-  .quantity-badge {
-    background: transparent !important;
-    color: #333 !important;
-    padding: 0 !important;
-    font-size: 11px !important;
-    border-radius: 0 !important;
-    display: inline !important;
-    border: none !important;
+  .price-cell {
+    grid-area: price;
+    text-align: left;
   }
 
-  .price-amount {
-    font-size: 11px !important;
-    color: #333 !important;
-    font-weight: bold !important;
+  .total-cell {
+    grid-area: total;
+    text-align: right;
   }
 
-  .total-amount {
-    font-size: 11px !important;
-    color: #333 !important;
-    font-weight: bold !important;
+  .notes-cell {
+    grid-area: notes;
+    margin-top: 0.1rem;
+    font-size: 0.8rem;
   }
 
-  .notes-content {
-    font-size: 10px !important;
-    display: inline !important;
+  .items-table tbody tr td.quantity-cell::before,
+  .items-table tbody tr td.price-cell::before,
+  .items-table tbody tr td.total-cell::before {
+    display: block;
+    margin-bottom: 0.2rem;
+    padding: 0;
+    color: var(--hr-muted);
+    font-family: var(--doc-sans);
+    font-size: 0.55rem;
+    font-style: normal;
+    font-weight: 600;
+    letter-spacing: 0.12em;
+    text-align: inherit;
+    text-transform: uppercase;
   }
 
-  .notes-content .icon {
-    display: none !important;
+  .items-table tbody tr td.quantity-cell::before {
+    content: 'Qty';
   }
 
-  .notes-text {
-    font-size: 10px !important;
-    color: #666 !important;
-    white-space: nowrap !important;
-    overflow: hidden !important;
-    text-overflow: ellipsis !important;
-    max-width: none !important;
+  .items-table tbody tr td.price-cell::before {
+    content: 'Per guest';
   }
 
-  /* Segment headers */
-  .segment-section {
-    break-inside: avoid !important;
-    margin-bottom: 1rem !important;
-    page-break-inside: avoid !important;
-  }
-
-  .segment-items {
-    display: block !important;
-    margin-bottom: 0.5rem !important;
-  }
-
-  .segment-title {
-    font-size: 16px !important;
-    margin-bottom: 8px !important;
-    padding-bottom: 4px !important;
-    border-bottom: 2px solid #333 !important;
-  }
-
-  .segment-divider {
-    display: none !important;
-  }
-
-  /* Grand total section */
-  .grand-total-card {
-    break-inside: avoid !important;
-    background: #f5f5f5 !important;
-    color: #333 !important;
-    border: 1px solid #333 !important;
-    padding: 8px !important;
-    margin-top: 12px !important;
-  }
-
-  .grand-total-card .title,
-  .grand-total-card .subtitle {
-    color: #333 !important;
-  }
-
-  .grand-total-card .title {
-    font-size: 16px !important;
-    margin-bottom: 6px !important;
-  }
-
-  .grand-total-card .subtitle {
-    font-size: 12px !important;
-  }
-
-  .price-breakdown {
-    background: white !important;
-    border: 1px solid #333 !important;
-    padding: 8px !important;
-  }
-
-  .price-line {
-    color: #333 !important;
-    margin-bottom: 3px !important;
-    font-size: 11px !important;
-  }
-
-  .price-line .price-value {
-    font-size: 13px !important;
-  }
-
-  /* Footer */
-  .menu-footer {
-    margin-top: 15px !important;
-    padding-top: 10px !important;
-    border-top: 1px solid #ddd !important;
-    font-size: 10px !important;
-  }
-
-  /* Text color overrides */
-  .title, .subtitle {
-    color: #333 !important;
-  }
-
-  .has-text-success {
-    color: #2d5f3f !important;
-  }
-
-  .has-text-primary {
-    color: #2d4a7a !important;
-  }
-
-  .has-text-info {
-    color: #2d6a8a !important;
-  }
-
-  .has-text-grey,
-  .has-text-grey-dark,
-  .has-text-grey-darker {
-    color: #666 !important;
-  }
-
-  /* Page breaks */
-  .segment-section {
-    page-break-inside: avoid !important;
-  }
-
-  .grand-total-section {
-    page-break-inside: avoid !important;
-  }
-
-  /* Ensure no page breaks within item rows */
-  .items-row {
-    page-break-inside: avoid !important;
+  .items-table tbody tr td.total-cell::before {
+    content: 'Total';
   }
 }
 
-/* Responsive adjustments */
-@media (max-width: 768px) {
-  .info-card {
-    min-width: auto;
-    flex-direction: column;
-    text-align: center;
+/* ---------- Print ---------- */
+@media print {
+  .printable-menu {
+    max-width: none;
+    margin: 0;
   }
 
-  .info-content {
-    margin-left: 0;
-    margin-top: 0.5rem;
+  .print-toolbar {
+    display: none !important;
   }
 
-  .item-header {
-    flex-direction: column;
-    align-items: flex-start;
+  .menu-document {
+    overflow: visible;
+    border-radius: 0;
+    background: #fff;
+    box-shadow: none;
   }
 
-  .item-price {
-    text-align: left;
-    margin-top: 0.5rem;
+  .brand-band {
+    break-after: avoid;
+    padding: 16px 22px 14px;
+    background: #3a4633;
   }
 
-  .grand-total-card .columns {
-    flex-direction: column;
+  .brand-logo {
+    width: 150px;
+    max-width: 50%;
+  }
+
+  .brand-rule {
+    margin: 10px auto 8px;
+    background: rgba(245, 240, 230, 0.4);
+  }
+
+  .menu-title {
+    font-size: 24px;
+  }
+
+  .menu-description {
+    max-width: 480px;
+    margin-top: 5px;
+    color: rgba(255, 255, 255, 0.82);
+    font-size: 10px;
+    line-height: 1.5;
+  }
+
+  .event-meta {
+    max-width: none;
+    margin-top: 10px;
+    padding-top: 9px;
+  }
+
+  .meta-item {
+    padding: 0 14px;
+  }
+
+  .meta-label {
+    margin-bottom: 3px;
+    font-size: 8px;
+  }
+
+  .meta-value {
+    font-size: 14px;
+  }
+
+  .meta-value small {
+    font-size: 9px;
+  }
+
+  .doc-body {
+    padding: 16px 22px 10px;
+  }
+
+  .segment-section {
+    margin-bottom: 12px;
+  }
+
+  .segment-heading {
+    gap: 7px;
+    margin-bottom: 6px;
+    break-after: avoid;
+  }
+
+  .segment-index {
+    padding: 2px 5px;
+    font-size: 8px;
+  }
+
+  .segment-name {
+    font-size: 15px;
+  }
+
+  .table-wrap {
+    overflow: visible;
+  }
+
+  .items-table {
+    min-width: 0;
+  }
+
+  .items-table th {
+    padding: 5px 6px;
+    font-size: 8.5px;
+  }
+
+  .items-table td {
+    padding: 5px 6px;
+    font-size: 10.5px;
+    line-height: 1.35;
+  }
+
+  .items-table tr {
+    break-inside: avoid;
+  }
+
+  .item-name {
+    font-size: 11.5px;
+  }
+
+  .quantity-badge {
+    padding: 1px 4px;
+    font-size: 9.5px;
+  }
+
+  .price-cell {
+    font-size: 10.5px;
+  }
+
+  .notes-cell {
+    font-size: 9.5px;
+  }
+
+  .grand-total {
+    flex-direction: row;
+    align-items: center;
+    gap: 16px;
+    break-inside: avoid;
+    padding: 12px 16px;
+    border-radius: 0;
+    background: #3a4633;
+  }
+
+  .gt-copy {
+    max-width: 50%;
+  }
+
+  .gt-eyebrow {
+    margin-bottom: 3px;
+    font-size: 7px;
+  }
+
+  .gt-title {
+    font-size: 14px;
+  }
+
+  .gt-sub {
+    display: none;
+  }
+
+  .gt-pricing {
+    width: 220px;
+  }
+
+  .gt-line {
+    padding: 2px 0;
+    font-size: 9px;
+  }
+
+  .gt-line-total {
+    margin-top: 3px;
+    padding-top: 4px;
+  }
+
+  .gt-line-total span:last-child {
+    font-size: 16px;
+  }
+
+  .doc-note {
+    margin-top: 7px;
+    font-size: 9px;
+  }
+
+  .doc-footer {
+    margin-top: 10px;
+    padding-top: 8px;
+    break-inside: avoid;
+  }
+
+  .footer-tagline {
+    font-size: 10px;
+  }
+
+  .footer-meta {
+    margin-top: 3px;
+    font-size: 7px;
+  }
+}
+</style>
+
+<!-- Unscoped: strip the admin shell and set the paper size when printing. -->
+<style>
+@media print {
+  @page {
+    size: A4;
+    margin: 10mm;
+  }
+
+  html,
+  body {
+    margin: 0 !important;
+    padding: 0 !important;
+    overflow: visible !important;
+    background: #fff !important;
+  }
+
+  #app,
+  #app > *,
+  .main-section,
+  .section {
+    width: auto !important;
+    max-width: none !important;
+    height: auto !important;
+    margin: 0 !important;
+    padding: 0 !important;
+  }
+
+  nav,
+  aside,
+  footer,
+  .navbar,
+  .no-print {
+    display: none !important;
+  }
+
+  * {
+    -webkit-print-color-adjust: exact !important;
+    print-color-adjust: exact !important;
   }
 }
 </style>
